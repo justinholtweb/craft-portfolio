@@ -1,0 +1,109 @@
+{#
+  %%NAME%% — a single item
+  ---------------------------------------------------------------------------
+  Craft renders this for every entry in the “%%HANDLE%%” section.
+#}
+{% set portfolio = craft.portfolio.of('%%HANDLE%%') %}
+{% set featured = entry|portfolioField('featuredImage') %}
+{% set gallery = entry|portfolioField('gallery') %}
+{% set summary = entry|portfolioField('summary') %}
+{% set description = entry|portfolioField('description') %}
+{% set client = entry|portfolioField('client') %}
+{% set completed = entry|portfolioField('completedDate') %}
+{% set projectUrl = entry|portfolioField('projectUrl') %}
+{% set categories = entry|portfolioField('categories') %}
+{% set tags = entry|portfolioField('tags') %}
+
+<!DOCTYPE html>
+<html lang="{{ craft.app.language }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ entry.title }}</title>
+    {% if summary %}<meta name="description" content="{{ summary|striptags|trim }}">{% endif %}
+    {{ craft.portfolio.jsonld(entry) }}
+    {% include '%%ROOT%%/_partials/styles' %}
+</head>
+<body>
+
+<main class="pf-page pf-item-page">
+    <p class="pf-breadcrumb"><a href="{{ url('%%URI_ROOT%%') }}">%%NAME%%</a></p>
+
+    <h1>{{ entry.title }}</h1>
+
+    {% if summary %}<p class="pf-lede">{{ summary }}</p>{% endif %}
+
+    {% if featured %}
+        {% set image = featured.one() ?? null %}
+        {% if image %}
+            <figure class="pf-hero">
+                <img src="{{ image.getUrl({ width: 1600 }) }}"
+                     alt="{{ image.alt ?? entry.title }}"
+                     width="{{ image.getWidth({ width: 1600 }) }}"
+                     height="{{ image.getHeight({ width: 1600 }) }}"
+                     loading="eager">
+            </figure>
+        {% endif %}
+    {% endif %}
+
+    <dl class="pf-meta">
+        {% if client %}<dt>Client</dt><dd>{{ client }}</dd>{% endif %}
+        {% if completed %}<dt>Completed</dt><dd>{{ completed|date('F Y') }}</dd>{% endif %}
+        {% if categories %}
+            <dt>Categories</dt>
+            <dd>
+                {% for category in categories.all() %}
+                    <a href="{{ category.url }}">{{ category.title }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </dd>
+        {% endif %}
+        {% if tags %}
+            <dt>Tags</dt>
+            <dd>
+                {% for tag in tags.all() %}
+                    <a href="{{ url('%%URI_ROOT%%/tag/' ~ tag.slug) }}">{{ tag.title }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </dd>
+        {% endif %}
+        {% if projectUrl %}<dt>Live</dt><dd><a href="{{ projectUrl }}" rel="noopener">{{ projectUrl }}</a></dd>{% endif %}
+    </dl>
+
+    {% if description %}<div class="pf-prose">{{ description }}</div>{% endif %}
+
+    {% if gallery %}
+        {% set images = gallery.all() %}
+        {% if images|length %}
+            <ul class="pf-gallery" role="list">
+                {% for image in images %}
+                    <li>
+                        <img src="{{ image.getUrl({ width: 1200 }) }}"
+                             alt="{{ image.alt ?? '' }}"
+                             loading="lazy">
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endif %}
+
+    {% set related = craft.portfolio.related(entry, 3) %}
+    {% if related|length %}
+        <section class="pf-related">
+            <h2>More like this</h2>
+            <ul class="pf-items" role="list">
+                {% for item in related %}
+                    {% include '%%ROOT%%/_partials/card' with { item: item } only %}
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    <nav class="pf-pager">
+        {% set prev = craft.portfolio.prev(entry) %}
+        {% set next = craft.portfolio.next(entry) %}
+        {% if prev %}<a rel="prev" href="{{ prev.url }}">&larr; {{ prev.title }}</a>{% endif %}
+        {% if next %}<a rel="next" href="{{ next.url }}">{{ next.title }} &rarr;</a>{% endif %}
+    </nav>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,42 @@
+{#
+  %%NAME%% — a tag archive
+  ---------------------------------------------------------------------------
+  Reached through %%URI_ROOT%%/tag/<slug>, a route the plugin registers because Craft
+  tags — unlike categories — have no URI of their own. `slug` comes from the route.
+#}
+{% set portfolio = craft.portfolio.of('%%HANDLE%%') %}
+{% set tag = portfolio.tags({ slug: slug }).one() %}
+
+{% if not tag %}
+    {% exit 404 %}
+{% endif %}
+
+{% set items = portfolio.items({ tag: tag }).all() %}
+
+<!DOCTYPE html>
+<html lang="{{ craft.app.language }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ tag.title }} — %%NAME%%</title>
+    {% include '%%ROOT%%/_partials/styles' %}
+</head>
+<body>
+
+<main class="pf-page">
+    <p class="pf-breadcrumb"><a href="{{ url('%%URI_ROOT%%') }}">%%NAME%%</a></p>
+    <h1>{{ tag.title }}</h1>
+
+    {% if items|length %}
+        <ul class="pf-items" role="list">
+            {% for item in items %}
+                {% include '%%ROOT%%/_partials/card' with { item: item } only %}
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="pf-empty">Nothing tagged “{{ tag.title }}” yet.</p>
+    {% endif %}
+</main>
+
+</body>
+</html>

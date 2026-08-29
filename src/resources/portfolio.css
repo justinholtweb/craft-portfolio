@@ -1,0 +1,169 @@
+/* Portfolio grid — Pro. Plain CSS, no build step, scoped to .pf-grid so it cannot leak. */
+.pf-grid {
+    --pf-grid-gap: 1.5rem;
+    --pf-grid-radius: 6px;
+    --pf-grid-ink: currentColor;
+    --pf-grid-muted: color-mix(in srgb, currentColor 60%, transparent);
+    --pf-grid-line: color-mix(in srgb, currentColor 15%, transparent);
+    --pf-grid-columns: 3;
+}
+
+.pf-grid__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: 0 0 var(--pf-grid-gap);
+    padding: 0;
+    list-style: none;
+}
+
+.pf-grid__filter {
+    appearance: none;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 1px solid var(--pf-grid-line);
+    border-radius: 999px;
+    padding: .35rem .9rem;
+    font-size: .875rem;
+    cursor: pointer;
+}
+
+.pf-grid__filter[aria-pressed="true"] {
+    background: var(--pf-grid-ink);
+    color: Canvas;
+    border-color: var(--pf-grid-ink);
+}
+
+.pf-grid__filter-count { opacity: .6; }
+
+.pf-grid__items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--pf-grid-gap);
+    grid-template-columns: repeat(var(--pf-grid-columns), minmax(0, 1fr));
+}
+
+@media (max-width: 60rem) {
+    .pf-grid__items { grid-template-columns: repeat(min(var(--pf-grid-columns), 2), minmax(0, 1fr)); }
+}
+
+@media (max-width: 36rem) {
+    .pf-grid__items { grid-template-columns: minmax(0, 1fr); }
+}
+
+.pf-grid--masonry .pf-grid__items {
+    display: block;
+    columns: var(--pf-grid-columns);
+    column-gap: var(--pf-grid-gap);
+}
+
+.pf-grid--masonry .pf-grid__item {
+    break-inside: avoid;
+    margin-bottom: var(--pf-grid-gap);
+}
+
+@media (max-width: 60rem) {
+    .pf-grid--masonry .pf-grid__items { columns: min(var(--pf-grid-columns), 2); }
+}
+
+@media (max-width: 36rem) {
+    .pf-grid--masonry .pf-grid__items { columns: 1; }
+}
+
+.pf-grid--list .pf-grid__items { grid-template-columns: minmax(0, 1fr); }
+
+.pf-grid--list .pf-grid__card {
+    display: grid;
+    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+    gap: var(--pf-grid-gap);
+    align-items: start;
+}
+
+.pf-grid__item[hidden] { display: none; }
+
+.pf-grid__card {
+    color: inherit;
+    text-decoration: none;
+    display: block;
+}
+
+.pf-grid__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--pf-grid-radius);
+    background: var(--pf-grid-line);
+}
+
+.pf-grid--grid .pf-grid__image,
+.pf-grid--list .pf-grid__image { aspect-ratio: 4 / 3; object-fit: cover; }
+
+.pf-grid__image--empty { aspect-ratio: 4 / 3; }
+
+.pf-grid__body { padding-top: .75rem; }
+.pf-grid__title { display: block; font-weight: 600; }
+.pf-grid__client,
+.pf-grid__summary { display: block; color: var(--pf-grid-muted); font-size: .9375rem; }
+
+.pf-grid__empty { color: var(--pf-grid-muted); }
+
+/* Lightbox */
+.pf-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, .88);
+    padding: 3rem 1rem;
+}
+
+.pf-lightbox[hidden] { display: none; }
+
+.pf-lightbox__figure {
+    margin: 0;
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    align-items: center;
+}
+
+.pf-lightbox__image {
+    max-width: 100%;
+    max-height: calc(100vh - 8rem);
+    width: auto;
+    height: auto;
+    border-radius: 4px;
+}
+
+.pf-lightbox__caption { color: #fff; font-size: .875rem; text-align: center; }
+
+.pf-lightbox__button {
+    position: absolute;
+    appearance: none;
+    background: rgba(255, 255, 255, .12);
+    color: #fff;
+    border: 0;
+    border-radius: 999px;
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.pf-lightbox__button:hover { background: rgba(255, 255, 255, .24); }
+.pf-lightbox__close { top: 1rem; right: 1rem; }
+.pf-lightbox__prev { left: 1rem; top: 50%; transform: translateY(-50%); }
+.pf-lightbox__next { right: 1rem; top: 50%; transform: translateY(-50%); }
+
+@media (prefers-reduced-motion: no-preference) {
+    .pf-lightbox { animation: pf-fade .15s ease-out; }
+    @keyframes pf-fade { from { opacity: 0; } to { opacity: 1; } }
+}

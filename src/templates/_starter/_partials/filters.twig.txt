@@ -1,0 +1,19 @@
+{#
+  A filter bar built from the categories that actually have items, with counts.
+  `filters()` is one relations query, not one count per category.
+#}
+{% set portfolio = portfolio ?? craft.portfolio.of('%%HANDLE%%') %}
+{% set current = current ?? null %}
+{% set filters = portfolio.filters() %}
+
+{% if filters|length %}
+    <nav class="pf-filters" aria-label="Filter by category">
+        <a class="pf-filter{{ current is null ? ' is-current' : '' }}" href="{{ url('%%URI_ROOT%%') }}">All</a>
+        {% for filter in filters %}
+            <a class="pf-filter{{ current and current.id == filter.category.id ? ' is-current' : '' }}"
+               href="{{ filter.category.url }}">
+                {{ filter.category.title }} <span class="pf-filter__count">{{ filter.count }}</span>
+            </a>
+        {% endfor %}
+    </nav>
+{% endif %}

@@ -1,0 +1,79 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set title = "Portfolios"|t('portfolio') %}
+{% set selectedSubnavItem = 'portfolios' %}
+
+{% block actionButton %}
+    {% if canAdd %}
+        <a href="{{ url('portfolio/new') }}" class="btn submit add icon">{{ "Build a portfolio"|t('portfolio') }}</a>
+    {% endif %}
+    {% if canAdopt %}
+        <a href="{{ url('portfolio/adopt') }}" class="btn">{{ "Adopt a section"|t('portfolio') }}</a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if portfolios is empty %}
+        <div class="zilch">
+            <p>{{ "No portfolios yet."|t('portfolio') }}</p>
+            <p class="light">
+                {{ "A portfolio is a section, an entry type, a set of fields and a taxonomy — built in one go, and remembered by role so your templates never name a field handle."|t('portfolio') }}
+            </p>
+            <p><a href="{{ url('portfolio/new') }}" class="btn submit">{{ "Build one"|t('portfolio') }}</a></p>
+        </div>
+    {% else %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Portfolio"|t('portfolio') }}</th>
+                    <th scope="col">{{ "Section"|t('portfolio') }}</th>
+                    <th scope="col">{{ "Fields"|t('portfolio') }}</th>
+                    <th scope="col">{{ "Templates"|t('portfolio') }}</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for portfolio in portfolios %}
+                    {% set section = portfolio.getSection() %}
+                    <tr>
+                        <th scope="row">
+                            <a href="{{ url('portfolio/' ~ portfolio.uid) }}">{{ portfolio.name }}</a>
+                            <span class="light code">{{ portfolio.handle }}</span>
+                            {% if portfolio.adopted %}<span class="status-label">{{ "adopted"|t('portfolio') }}</span>{% endif %}
+                        </th>
+                        <td>
+                            {% if section %}
+                                <a href="{{ url('settings/sections/' ~ section.id) }}">{{ section.name }}</a>
+                            {% else %}
+                                <span class="error">{{ "missing"|t('portfolio') }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ portfolio.liveRoles()|length }} / {{ portfolio.roles|length }}</td>
+                        <td class="code light">{{ portfolio.templateRoot }}/</td>
+                        <td class="thin">
+                            {% if drift[portfolio.uid] is defined %}
+                                <span class="error" data-icon="alert">{{ drift[portfolio.uid]|length }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if drift is not empty %}
+            <div class="pane" style="margin-top: 24px;">
+                <h2 class="error">{{ "Needs attention"|t('portfolio') }}</h2>
+                {% for uid, problems in drift %}
+                    <ul class="errors">
+                        {% for problem in problems %}<li>{{ problem }}</li>{% endfor %}
+                    </ul>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+
+    {% if not canAdd %}
+        <p class="light" style="margin-top: 24px;">{{ limitMessage }}</p>
+    {% endif %}
+{% endblock %}

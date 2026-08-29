@@ -1,0 +1,225 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set title = portfolio.name %}
+{% set selectedSubnavItem = 'portfolios' %}
+{% set crumbs = [{ label: "Portfolios"|t('portfolio'), url: url('portfolio') }] %}
+
+{% set section = portfolio.getSection() %}
+{% set entryType = portfolio.getEntryType() %}
+{% set categoryGroup = portfolio.getCategoryGroup() %}
+{% set tagGroup = portfolio.getTagGroup() %}
+{% set canManage = currentUser.admin and currentUser.can('portfolio:managePortfolios') %}
+
+{% block content %}
+    {% if drift is not empty %}
+        <div class="pane" style="border-left: 3px solid var(--error-color, #cf1124);">
+            <h2 class="error">{{ "Something has changed underneath this portfolio"|t('portfolio') }}</h2>
+            <ul class="errors">
+                {% for problem in drift %}<li>{{ problem }}</li>{% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="pane">
+        <h2>{{ "The content model"|t('portfolio') }}</h2>
+
+        <table class="data fullwidth">
+            <tbody>
+                <tr>
+                    <th scope="row" class="thin">{{ "Section"|t('portfolio') }}</th>
+                    <td>
+                        {% if section %}
+                            <a href="{{ url('settings/sections/' ~ section.id) }}" class="code">{{ section.handle }}</a>
+                            <span class="light">{{ section.type }}</span>
+                        {% else %}<span class="error">{{ "missing"|t('portfolio') }}</span>{% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">{{ "Entry type"|t('portfolio') }}</th>
+                    <td>
+                        {% if entryType %}
+                            <a href="{{ entryType.cpEditUrl }}" class="code">{{ entryType.handle }}</a>
+                        {% else %}<span class="error">{{ "missing"|t('portfolio') }}</span>{% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">{{ "Categories"|t('portfolio') }}</th>
+                    <td>{% if categoryGroup %}<span class="code">{{ categoryGroup.handle }}</span>{% else %}<span class="light">—</span>{% endif %}</td>
+                </tr>
+                <tr>
+                    <th scope="row">{{ "Tags"|t('portfolio') }}</th>
+                    <td>{% if tagGroup %}<span class="code">{{ tagGroup.handle }}</span>{% else %}<span class="light">—</span>{% endif %}</td>
+                </tr>
+                <tr>
+                    <th scope="row">{{ "Templates"|t('portfolio') }}</th>
+                    <td class="code">{{ portfolio.templateRoot }}/</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pane">
+        <h2>{{ "Roles"|t('portfolio') }}</h2>
+        <p class="light">
+            {{ "Templates ask for the role on the left; the plugin looks up the handle on the right at the moment it is asked. Rename a field in the control panel and everything keeps working."|t('portfolio') }}
+        </p>
+
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Role"|t('portfolio') }}</th>
+                    <th scope="col">{{ "Field"|t('portfolio') }}</th>
+                    <th scope="col">{{ "In a template"|t('portfolio') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for role in roles %}
+                    {% if role in portfolio.roles|keys %}
+                        {% set handle = portfolio.handleForRole(role) %}
+                        <tr>
+                            <th scope="row">{{ roleLabels[role] ?? role }}</th>
+                            <td>
+                                {% if handle %}<span class="code">{{ handle }}</span>
+                                {% else %}<span class="error">{{ "deleted"|t('portfolio') }}</span>{% endif %}
+                            </td>
+                            <td class="code light">entry|portfolioField('{{ role }}')</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pane">
+        <h2>{{ "Front-end templates"|t('portfolio') }}</h2>
+        <p class="light">
+            {{ "Working index, item, category and tag templates, written into"|t('portfolio') }}
+            <span class="code">{{ templatesPath }}/{{ portfolio.templateRoot }}/</span>.
+            {{ "Files that already exist are left alone unless you tick the overwrite box."|t('portfolio') }}
+        </p>
+
+        {% if not templatesWritable %}
+            <p class="error">{{ "The templates directory is not writable, so nothing can be written from here."|t('portfolio') }}</p>
+        {% elseif canManage %}
+            {# Posted from JS rather than from a nested <form>: this page is already inside Craft's
+               page form, and a nested form is dropped by the HTML parser while its inputs survive —
+               which leaves a second action input next to the page's own, and Save runs this. #}
+            <div id="portfolio-templates">
+                {{ forms.checkbox({
+                    id: 'force',
+                    name: 'force',
+                    label: "Overwrite files that already exist"|t('portfolio'),
+                }) }}
+                <p>
+                    <button type="button" class="btn submit" id="portfolio-write-templates">
+                        {{ templatesExist ? "Write them again"|t('portfolio') : "Write the templates"|t('portfolio') }}
+                    </button>
+                </p>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if canManage %}
+        <div class="pane">
+            <h2>{{ "Removing this portfolio"|t('portfolio') }}</h2>
+
+            <p class="light">
+                <strong>{{ "Forget it"|t('portfolio') }}</strong> —
+                {{ "the plugin stops managing this portfolio. The section, fields, taxonomy and every entry stay exactly where they are; only the role map goes."|t('portfolio') }}
+            </p>
+            <p>
+                <button type="button" class="btn" id="portfolio-forget">{{ "Forget this portfolio"|t('portfolio') }}</button>
+            </p>
+
+            <hr>
+
+            <p class="light">
+                <strong class="error">{{ "Remove the content model"|t('portfolio') }}</strong> —
+                {{ "deletes the section and, because Craft cascades, every entry in it."|t('portfolio') }}
+            </p>
+            <ul class="errors">
+                <li>{{ "{n} entries"|t('portfolio', { n: impact.entries }) }}</li>
+                {% if categoryGroup %}<li>{{ "{n} categories"|t('portfolio', { n: impact.categories }) }}</li>{% endif %}
+                {% if tagGroup %}<li>{{ "{n} tags"|t('portfolio', { n: impact.tags }) }}</li>{% endif %}
+                <li>{{ "{n} fields, unless another field layout uses them"|t('portfolio', { n: impact.fields|length }) }}</li>
+            </ul>
+
+            {{ forms.textField({
+                label: "Type the handle to confirm"|t('portfolio'),
+                id: 'confirmHandle',
+                name: 'confirmHandle',
+                placeholder: portfolio.handle,
+                class: 'code',
+            }) }}
+
+            <p>
+                <button type="button" class="btn" id="portfolio-remove-schema">{{ "Remove the content model"|t('portfolio') }}</button>
+            </p>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% js %}
+(function () {
+    var uid = {{ portfolio.uid|json_encode|raw }};
+
+    function post(action, extra, confirmText) {
+        if (confirmText && !window.confirm(confirmText)) {
+            return;
+        }
+
+        var data = Object.assign({ portfolioUid: uid }, extra || {});
+        var form = document.createElement('form');
+        form.method = 'post';
+        form.action = Craft.getActionUrl(action);
+
+        var csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = Craft.csrfTokenName;
+        csrf.value = Craft.csrfTokenValue;
+        form.appendChild(csrf);
+
+        Object.keys(data).forEach(function (key) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = data[key];
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    var write = document.getElementById('portfolio-write-templates');
+
+    if (write) {
+        write.addEventListener('click', function () {
+            var box = document.getElementById('force');
+            post('portfolio/portfolios/write-templates', { force: box && box.checked ? '1' : '' });
+        });
+    }
+
+    var forget = document.getElementById('portfolio-forget');
+
+    if (forget) {
+        forget.addEventListener('click', function () {
+            post('portfolio/portfolios/forget', {}, {{ "Stop managing this portfolio? Nothing is deleted."|t('portfolio')|json_encode|raw }});
+        });
+    }
+
+    var remove = document.getElementById('portfolio-remove-schema');
+
+    if (remove) {
+        remove.addEventListener('click', function () {
+            var handle = document.getElementById('confirmHandle');
+            post(
+                'portfolio/portfolios/remove-schema',
+                { confirmHandle: handle ? handle.value : '' },
+                {{ "This permanently deletes the section and every entry in it. Continue?"|t('portfolio')|json_encode|raw }}
+            );
+        });
+    }
+}());
+{% endjs %}

@@ -1,0 +1,37 @@
+{#
+  %%NAME%% — a category archive
+  ---------------------------------------------------------------------------
+  Craft renders this for every category in the “%%HANDLE%%Categories” group.
+#}
+{% set portfolio = craft.portfolio.of('%%HANDLE%%') %}
+{% set items = portfolio.items({ category: category }).all() %}
+
+<!DOCTYPE html>
+<html lang="{{ craft.app.language }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ category.title }} — %%NAME%%</title>
+    {% include '%%ROOT%%/_partials/styles' %}
+</head>
+<body>
+
+<main class="pf-page">
+    <p class="pf-breadcrumb"><a href="{{ url('%%URI_ROOT%%') }}">%%NAME%%</a></p>
+    <h1>{{ category.title }}</h1>
+
+    {% include '%%ROOT%%/_partials/filters' with { portfolio: portfolio, current: category } only %}
+
+    {% if items|length %}
+        <ul class="pf-items" role="list">
+            {% for item in items %}
+                {% include '%%ROOT%%/_partials/card' with { item: item } only %}
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="pf-empty">Nothing in this category yet.</p>
+    {% endif %}
+</main>
+
+</body>
+</html>

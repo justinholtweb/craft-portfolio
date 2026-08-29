@@ -1,0 +1,28 @@
+{#
+  One card. Expects `item`; guarded so devMode's strict_variables stays happy.
+#}
+{% set item = item ?? null %}
+{% if item %}
+    {% set featured = (item|portfolioField('featuredImage')).one() ?? null %}
+    {% set summary = item|portfolioField('summary') %}
+    {% set client = item|portfolioField('client') %}
+
+    <li class="pf-item">
+        <a class="pf-card" href="{{ item.url }}">
+            {% if featured %}
+                <img class="pf-card__image"
+                     src="{{ featured.getUrl({ width: 800, height: 600, mode: 'crop' }) }}"
+                     alt="{{ featured.alt ?? item.title }}"
+                     width="800" height="600" loading="lazy">
+            {% else %}
+                <span class="pf-card__image pf-card__image--empty" aria-hidden="true"></span>
+            {% endif %}
+
+            <span class="pf-card__body">
+                <span class="pf-card__title">{{ item.title }}</span>
+                {% if client %}<span class="pf-card__client">{{ client }}</span>{% endif %}
+                {% if summary %}<span class="pf-card__summary">{{ summary }}</span>{% endif %}
+            </span>
+        </a>
+    </li>
+{% endif %}

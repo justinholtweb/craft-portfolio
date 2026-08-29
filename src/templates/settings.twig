@@ -1,0 +1,124 @@
+{% import "_includes/forms" as forms %}
+
+{% set portfolioOptions = [{ value: '', label: "The first one"|t('portfolio') }] %}
+{% for portfolio in portfolios %}
+    {% set portfolioOptions = portfolioOptions|merge([{ value: portfolio.handle, label: portfolio.name }]) %}
+{% endfor %}
+
+{{ forms.selectField({
+    label: "Default portfolio"|t('portfolio'),
+    instructions: "Which portfolio `craft.portfolio.items()` means when a template does not name one. Templates can always be explicit with `craft.portfolio.of('handle')`."|t('portfolio')|md(inlineOnly=true),
+    id: 'defaultPortfolio',
+    name: 'defaultPortfolio',
+    options: portfolioOptions,
+    value: settings.defaultPortfolio,
+}) }}
+
+<hr>
+
+<h2>{{ "Tag archives"|t('portfolio') }}</h2>
+
+<p class="light">
+    {{ "Craft tags have no URI of their own, unlike categories, so a tag archive needs a route. With this on, every portfolio that has a tag group serves `<template folder>/tag/<slug>`."|t('portfolio')|md(inlineOnly=true) }}
+</p>
+
+{{ forms.lightswitchField({
+    label: "Serve tag archives"|t('portfolio'),
+    id: 'tagArchives',
+    name: 'tagArchives',
+    on: settings.tagArchives,
+}) }}
+
+{{ forms.textField({
+    label: "Tag archive template"|t('portfolio'),
+    instructions: "Relative to each portfolio's template folder."|t('portfolio'),
+    id: 'tagTemplate',
+    name: 'tagTemplate',
+    value: settings.tagTemplate,
+    class: 'code',
+    errors: settings.getErrors('tagTemplate'),
+}) }}
+
+<hr>
+
+<h2>{{ "The grid"|t('portfolio') }}</h2>
+
+{% if not plugin.isPro() %}
+    <p class="light">
+        {{ "`craft.portfolio.grid()` and structured data are Pro features. Everything else — the content model, the starter templates and the whole query API — is in Lite."|t('portfolio')|md(inlineOnly=true) }}
+    </p>
+{% endif %}
+
+<p class="light">
+    {{ "Defaults for `craft.portfolio.grid()`. Any of them can be overridden per call."|t('portfolio')|md(inlineOnly=true) }}
+</p>
+
+{{ forms.selectField({
+    label: "Layout"|t('portfolio'),
+    id: 'gridLayout',
+    name: 'gridLayout',
+    options: [
+        { value: 'grid', label: "Grid — even rows"|t('portfolio') },
+        { value: 'masonry', label: "Masonry — CSS columns"|t('portfolio') },
+        { value: 'list', label: "List — image beside text"|t('portfolio') },
+    ],
+    value: settings.gridLayout,
+    errors: settings.getErrors('gridLayout'),
+}) }}
+
+{{ forms.textField({
+    label: "Columns"|t('portfolio'),
+    id: 'gridColumns',
+    name: 'gridColumns',
+    value: settings.gridColumns,
+    type: 'number',
+    size: 4,
+    errors: settings.getErrors('gridColumns'),
+}) }}
+
+{{ forms.textField({
+    label: "Card image width"|t('portfolio'),
+    instructions: "Pixels. Cards are transformed to this width at a 4:3 crop."|t('portfolio'),
+    id: 'gridImageWidth',
+    name: 'gridImageWidth',
+    value: settings.gridImageWidth,
+    type: 'number',
+    size: 6,
+    errors: settings.getErrors('gridImageWidth'),
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Filtering on by default"|t('portfolio'),
+    instructions: "Renders a category filter bar and hides non-matching cards in the browser, so an archive page stays one cacheable response."|t('portfolio'),
+    id: 'gridFilterable',
+    name: 'gridFilterable',
+    on: settings.gridFilterable,
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Lightbox on by default"|t('portfolio'),
+    id: 'gridLightbox',
+    name: 'gridLightbox',
+    on: settings.gridLightbox,
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Inline the grid CSS and JS"|t('portfolio'),
+    instructions: "Off if you would rather copy the styles into your own stylesheet — the markup and class names are identical either way."|t('portfolio'),
+    id: 'gridAssets',
+    name: 'gridAssets',
+    on: settings.gridAssets,
+}) }}
+
+<hr>
+
+<h2>{{ "Structured data"|t('portfolio') }}</h2>
+
+{{ forms.lightswitchField({
+    label: "Emit schema.org CreativeWork"|t('portfolio'),
+    instructions: "Turns on `{{ craft.portfolio.jsonld(entry) }}`, which the starter item template already calls. Nothing is injected into pages — the tag decides where it goes."|t('portfolio')|md(inlineOnly=true),
+    id: 'jsonLd',
+    name: 'jsonLd',
+    on: settings.jsonLd,
+    disabled: not plugin.isPro(),
+}) }}

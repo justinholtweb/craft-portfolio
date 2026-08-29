@@ -1,0 +1,56 @@
+{
+    "name": "justinholtweb/craft-portfolio",
+    "description": "Portfolio sections for Craft CMS — builds the section, entry type, fields and taxonomy in one go, then gives the front end a query API, starter templates and a drop-in grid.",
+    "version": "5.0.0",
+    "type": "craft-plugin",
+    "keywords": [
+        "craftcms",
+        "craft-plugin",
+        "portfolio",
+        "projects",
+        "case-studies",
+        "gallery",
+        "showcase",
+        "scaffolding"
+    ],
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Justin Holt",
+            "homepage": "https://justinholt.com"
+        }
+    ],
+    "support": {
+        "email": "justin@justinholt.com"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.2",
+        "ext-json": "*",
+        "craftcms/cms": "^5.3.0"
+    },
+    "suggest": {
+        "craftcms/ckeditor": "Portfolio will use a CKEditor field for the project description when this is installed."
+    },
+    "autoload": {
+        "psr-4": {
+            "justinholtweb\\portfolio\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "craftcms/plugin-installer": true,
+            "yiisoft/yii2-composer": true
+        }
+    },
+    "extra": {
+        "name": "Portfolio",
+        "handle": "portfolio",
+        "developer": "Justin Holt",
+        "developerUrl": "https://justinholt.com",
+        "documentationUrl": "https://github.com/justinholtweb/craft-portfolio/blob/main/README.md",
+        "changelogUrl": "https://raw.githubusercontent.com/justinholtweb/craft-portfolio/main/CHANGELOG.md",
+        "class": "justinholtweb\\portfolio\\Plugin"
+    }
+}
