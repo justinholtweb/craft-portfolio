@@ -1,3 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <path d="M38 20a8 8 0 0 1 8-8h8a8 8 0 0 1 8 8v6h12a12 12 0 0 1 12 12v38a12 12 0 0 1-12 12H26a12 12 0 0 1-12-12V38a12 12 0 0 1 12-12h12zm8 0v6h8v-6zM22 46v30a4 4 0 0 0 4 4h48a4 4 0 0 0 4-4V46H62v4a4 4 0 0 1-4 4h-16a4 4 0 0 1-4-4v-4zm0-8h56v-4a4 4 0 0 0-4-4H26a4 4 0 0 0-4 4z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Portfolio">
+  <!--
+    Control panel nav icon. Craft paints this as a flat silhouette in currentColor, so it is the
+    same path as src/icon.svg with the tile stripped.
+  -->
+  <path fill-rule="evenodd" d="M23,18 H43 A5,5 0 0 1 48,23 V51 A5,5 0 0 1 43,56 H23 A5,5 0 0 1 18,51 V23 A5,5 0 0 1 23,18 Z M57,18 H77 A5,5 0 0 1 82,23 V35 A5,5 0 0 1 77,40 H57 A5,5 0 0 1 52,35 V23 A5,5 0 0 1 57,18 Z M23,60 H43 A5,5 0 0 1 48,65 V77 A5,5 0 0 1 43,82 H23 A5,5 0 0 1 18,77 V65 A5,5 0 0 1 23,60 Z M57,44 H77 A5,5 0 0 1 82,49 V77 A5,5 0 0 1 77,82 H57 A5,5 0 0 1 52,77 V49 A5,5 0 0 1 57,44 Z M62.5,51.5 A4,4 0 1 0 62.5,59.5 A4,4 0 1 0 62.5,51.5 Z M56.5,76 L64.5,65 L69,70.5 L72.5,66.5 L77.5,76 Z"/>
 </svg>

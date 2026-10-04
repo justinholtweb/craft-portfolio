@@ -300,6 +300,11 @@ class Builder extends Component
         $portfolio->roles = $roles;
         $portfolio->templateRoot = $blueprint->templateRoot;
         $portfolio->sectionType = $blueprint->sectionType;
+        // Merged, not replaced: rebuilding to add a role must not forget what the first build made.
+        $portfolio->created = array_values(array_unique(array_merge(
+            $portfolio->created,
+            $this->createdUids($plan, $section, $entryType, $categoryGroup, $tagGroup, $fields),
+        )));
 
         if (!$portfolios->savePortfolio($portfolio)) {
             foreach ($portfolio->getErrors() as $errors) {
@@ -315,6 +320,33 @@ class Builder extends Component
         $result->success = !$result->hasProblems();
 
         return $result;
+    }
+
+    /**
+     * UIDs of everything the plan said to create, now that it exists.
+     *
+     * Read off the plan rather than the ensure* methods because the plan is the record of what was
+     * there *before* this build — the same thing the admin was shown and agreed to.
+     *
+     * @param FieldInterface[] $fields keyed by role
+     * @return string[]
+     */
+    private function createdUids(BuildPlan $plan, Section $section, EntryType $entryType, ?CategoryGroup $categoryGroup, ?TagGroup $tagGroup, array $fields): array
+    {
+        $uids = [];
+
+        foreach ($plan->creations() as $item) {
+            $uids[] = match ($item->kind) {
+                PlanItem::KIND_SECTION => $section->uid,
+                PlanItem::KIND_ENTRY_TYPE => $entryType->uid,
+                PlanItem::KIND_CATEGORY_GROUP => $categoryGroup?->uid,
+                PlanItem::KIND_TAG_GROUP => $tagGroup?->uid,
+                PlanItem::KIND_FIELD => $item->role !== null ? ($fields[$item->role] ?? null)?->uid : null,
+                default => null,
+            };
+        }
+
+        return array_values(array_filter($uids));
     }
 
     // ------------------------------------------------------------------ creating each piece
@@ -705,8 +737,11 @@ class Builder extends Component
      */
     public function teardownImpact(Portfolio $portfolio): array
     {
+        // Only what teardown() will actually delete: anything the build reused stays.
         $section = $portfolio->getSection();
+        $section = $portfolio->wasCreated($section?->uid) ? $section : null;
         $group = $portfolio->getCategoryGroup();
+        $group = $portfolio->wasCreated($group?->uid) ? $group : null;
 
         $entries = $section !== null
             ? Entry::find()->sectionId($section->id)->status(null)->siteId('*')->unique()->count()
@@ -717,6 +752,7 @@ class Builder extends Component
             : 0;
 
         $tagGroup = $portfolio->getTagGroup();
+        $tagGroup = $portfolio->wasCreated($tagGroup?->uid) ? $tagGroup : null;
 
         $tags = $tagGroup !== null
             ? Tag::find()->groupId($tagGroup->id)->status(null)->siteId('*')->unique()->count()
@@ -728,7 +764,7 @@ class Builder extends Component
             'categories' => (int)$categories,
             'tags' => (int)$tags,
             'fields' => array_values(array_filter(array_map(
-                fn(string $role) => $portfolio->handleForRole($role),
+                fn(string $role) => $portfolio->wasCreated($portfolio->roles[$role]) ? $portfolio->handleForRole($role) : null,
                 array_keys($portfolio->roles),
             ))),
         ];
@@ -740,8 +776,9 @@ class Builder extends Component
      * Never called by anything the plugin does on its own — not by uninstall, not by
      * `deletePortfolio()`. Only an explicit, confirmed request gets here.
      *
-     * Fields are only removed when nothing else is using them: a field the site later added to
-     * another entry type is the site's field now, whoever created it.
+     * Only what the plugin created is removed — anything the build reused stays, the same rule
+     * build() follows. Fields are also kept when something else is using them: a field the site
+     * later added to another entry type is the site's field now, whoever created it.
      */
     public function teardown(Portfolio $portfolio): BuildResult
     {
@@ -752,18 +789,29 @@ class Builder extends Component
             return $result;
         }
 
+        // An adopted section is one the site built by hand, often years of entries ago. The
+        // plugin did not create it, so it does not get to delete it — forgetting is the way out.
+        if ($portfolio->adopted) {
+            $result->addProblem(Craft::t('portfolio', 'This portfolio adopted a section the site already had, so its content model is not the plugin’s to remove. Forget the portfolio instead; the section stays as it is.'));
+            return $result;
+        }
+
         $entries = Craft::$app->getEntries();
         $section = $portfolio->getSection();
 
         try {
-            if ($section !== null) {
+            if ($section !== null && !$portfolio->wasCreated($section->uid)) {
+                $result->addReused(Craft::t('portfolio', 'Kept the “{handle}” section and its entries. The site had it before this portfolio.', ['handle' => $section->handle]));
+            } elseif ($section !== null) {
                 $entries->deleteSection($section);
                 $result->addCreated(Craft::t('portfolio', 'Deleted the “{handle}” section and its entries', ['handle' => $section->handle]));
             }
 
             $entryType = $portfolio->getEntryType();
 
-            if ($entryType !== null) {
+            if ($entryType !== null && !$portfolio->wasCreated($entryType->uid)) {
+                $result->addReused(Craft::t('portfolio', 'Kept the “{handle}” entry type. The site had it before this portfolio.', ['handle' => $entryType->handle]));
+            } elseif ($entryType !== null) {
                 $entries->deleteEntryType($entryType);
                 $result->addCreated(Craft::t('portfolio', 'Deleted the “{handle}” entry type', ['handle' => $entryType->handle]));
             }
@@ -775,8 +823,13 @@ class Builder extends Component
                     continue;
                 }
 
+                if (!$portfolio->wasCreated($field->uid)) {
+                    $result->addReused(Craft::t('portfolio', 'Kept the “{handle}” field. The site had it before this portfolio.', ['handle' => $field->handle]));
+                    continue;
+                }
+
                 if ($this->fieldIsUsedElsewhere($field, $portfolio)) {
-                    $result->addReused(Craft::t('portfolio', 'Kept the “{handle}” field — it is used by another field layout', ['handle' => $field->handle]));
+                    $result->addReused(Craft::t('portfolio', 'Kept the “{handle}” field. It is used by another field layout.', ['handle' => $field->handle]));
                     continue;
                 }
 
@@ -786,14 +839,18 @@ class Builder extends Component
 
             $group = $portfolio->getCategoryGroup();
 
-            if ($group !== null) {
+            if ($group !== null && !$portfolio->wasCreated($group->uid)) {
+                $result->addReused(Craft::t('portfolio', 'Kept the “{handle}” category group. The site had it before this portfolio.', ['handle' => $group->handle]));
+            } elseif ($group !== null) {
                 Craft::$app->getCategories()->deleteGroup($group);
                 $result->addCreated(Craft::t('portfolio', 'Deleted the “{handle}” category group', ['handle' => $group->handle]));
             }
 
             $tagGroup = $portfolio->getTagGroup();
 
-            if ($tagGroup !== null) {
+            if ($tagGroup !== null && !$portfolio->wasCreated($tagGroup->uid)) {
+                $result->addReused(Craft::t('portfolio', 'Kept the “{handle}” tag group. The site had it before this portfolio.', ['handle' => $tagGroup->handle]));
+            } elseif ($tagGroup !== null) {
                 Craft::$app->getTags()->deleteTagGroup($tagGroup);
                 $result->addCreated(Craft::t('portfolio', 'Deleted the “{handle}” tag group', ['handle' => $tagGroup->handle]));
             }

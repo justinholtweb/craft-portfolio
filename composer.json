@@ -14,6 +14,7 @@
         "scaffolding"
     ],
     "license": "proprietary",
+    "homepage": "https://justinholt.com/plugins/craft-portfolio",
     "authors": [
         {
             "name": "Justin Holt",
@@ -21,7 +22,10 @@
         }
     ],
     "support": {
-        "email": "justin@justinholt.com"
+        "email": "justin@justinholt.com",
+        "docs": "https://justinholt.com/plugins/craft-portfolio/docs",
+        "source": "https://github.com/justinholtweb/craft-portfolio",
+        "issues": "https://github.com/justinholtweb/craft-portfolio/issues"
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
@@ -30,6 +34,11 @@
         "ext-json": "*",
         "craftcms/cms": "^5.3.0"
     },
+    "require-dev": {
+        "craftcms/ecs": "dev-main",
+        "craftcms/phpstan": "dev-main",
+        "phpstan/phpstan": "^1.12 || ^2.2"
+    },
     "suggest": {
         "craftcms/ckeditor": "Portfolio will use a CKEditor field for the project description when this is installed."
     },
@@ -37,6 +46,11 @@
         "psr-4": {
             "justinholtweb\\portfolio\\": "src/"
         }
+    },
+    "scripts": {
+        "phpstan": "phpstan --memory-limit=1G",
+        "check-cs": "ecs check --ansi",
+        "fix-cs": "ecs check --ansi --fix"
     },
     "config": {
         "allow-plugins": {
@@ -49,7 +63,7 @@
         "handle": "portfolio",
         "developer": "Justin Holt",
         "developerUrl": "https://justinholt.com",
-        "documentationUrl": "https://github.com/justinholtweb/craft-portfolio/blob/main/README.md",
+        "documentationUrl": "https://justinholt.com/plugins/craft-portfolio/docs",
         "changelogUrl": "https://raw.githubusercontent.com/justinholtweb/craft-portfolio/main/CHANGELOG.md",
         "class": "justinholtweb\\portfolio\\Plugin"
     }

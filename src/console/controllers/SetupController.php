@@ -157,10 +157,10 @@ class SetupController extends Controller
             $section = $portfolio->getSection();
 
             $this->stdout("\n  {$portfolio->name} ({$portfolio->handle})\n", Console::BOLD);
-            $this->stdout('    section       ' . ($section?->handle ?? '— missing —') . "\n");
-            $this->stdout('    entry type    ' . ($portfolio->getEntryType()?->handle ?? '— missing —') . "\n");
-            $this->stdout('    categories    ' . ($portfolio->getCategoryGroup()?->handle ?? '—') . "\n");
-            $this->stdout('    tags          ' . ($portfolio->getTagGroup()?->handle ?? '—') . "\n");
+            $this->stdout('    section       ' . ($section->handle ?? '— missing —') . "\n");
+            $this->stdout('    entry type    ' . ($portfolio->getEntryType()->handle ?? '— missing —') . "\n");
+            $this->stdout('    categories    ' . ($portfolio->getCategoryGroup()->handle ?? '—') . "\n");
+            $this->stdout('    tags          ' . ($portfolio->getTagGroup()->handle ?? '—') . "\n");
             $this->stdout('    templates     ' . $portfolio->templateRoot . "/\n");
 
             $this->stdout("    roles\n");
@@ -243,11 +243,16 @@ class SetupController extends Controller
             return ExitCode::UNSPECIFIED_ERROR;
         }
 
+        if ($portfolio->adopted) {
+            $this->stderr("“{$portfolio->handle}” adopted a section the site already had, so its content model is not the plugin’s to remove. Use the CP to forget it instead.\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+
         $impact = $plugin->builder->teardownImpact($portfolio);
 
         $this->stdout("\nThis will permanently delete:\n\n", Console::FG_RED, Console::BOLD);
         $this->stdout("  the “{$portfolio->handle}” section and its {$impact['entries']} entries\n");
-        $this->stdout("  the “" . ($portfolio->getEntryType()?->handle ?? '?') . "” entry type\n");
+        $this->stdout("  the “" . ($portfolio->getEntryType()->handle ?? '?') . "” entry type\n");
 
         if ($impact['categories'] > 0 || $portfolio->categoryGroupUid !== null) {
             $this->stdout("  the category group and its {$impact['categories']} categories\n");

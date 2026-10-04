@@ -326,8 +326,9 @@ class Blueprint extends Model
     {
         return [
             [['name', 'handle', 'sectionType', 'uriFormat', 'templateRoot'], 'required'],
-            [['handle'], 'match', 'pattern' => '/^[a-z][a-zA-Z0-9]*$/', 'message' => 'The handle must start with a lowercase letter and contain only letters and numbers.'],
+            [['handle'], 'match', 'pattern' => '/^[a-z][a-zA-Z0-9]*$/', 'message' => Craft::t('portfolio', 'The handle must start with a lowercase letter and contain only letters and numbers.')],
             [['sectionType'], 'in', 'range' => [Section::TYPE_STRUCTURE, Section::TYPE_CHANNEL]],
+            [['templateRoot'], 'match', 'pattern' => Portfolio::TEMPLATE_ROOT_PATTERN, 'message' => Craft::t('portfolio', 'The template root must be a path inside the templates folder, like `work` or `work/projects`.')],
             [['roles'], function(string $attribute) {
                 foreach ($this->$attribute as $role) {
                     if (!Role::exists($role)) {

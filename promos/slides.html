@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<!-- handmade: hand-tuned deck -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portfolio — Plugin Store promos</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --charcoal: #0f0f1a;
+    --charcoal-light: #1a1a2e;
+    --charcoal-lighter: #252540;
+    --accent: #93348C;
+    --accent-light: #DB92D4;
+    --gold: #ffd166;
+    --off-white: #f0f0f5;
+  }
+
+  html { background: #000; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--off-white);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- slide shell ---------------------------------------------------- */
+  .slide {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 85% 15%, rgba(147, 52, 140, 0.34) 0%, transparent 40%),
+      radial-gradient(ellipse at 65% 5%,  rgba(219, 146, 212, 0.14) 0%, transparent 35%),
+      radial-gradient(ellipse at 15% 85%, rgba(255, 209, 102, 0.07) 0%, transparent 40%),
+      radial-gradient(ellipse at 35% 95%, rgba(147, 52, 140, 0.14) 0%, transparent 35%),
+      linear-gradient(135deg, #0f0f1a 0%, #190f1c 30%, #1d1224 60%, #0f0f1a 100%);
+  }
+
+  /* Oversized watermark: the mark with the tile stripped, because a rounded square at this
+     size reads as a grey box across the slide rather than as the icon. Anchored bottom-right and
+     running off the right and bottom edges, away from the headline at the top-left. */
+  .slide::after {
+    content: '';
+    position: absolute;
+    top: -8%;
+    right: -18%;
+    width: 1400px;
+    height: 1400px;
+    background: url('assets/watermark.svg') no-repeat center / contain;
+    opacity: 0.03;
+    pointer-events: none;
+  }
+
+  /* The cover has the icon itself; a watermark behind it reads as its shadow. */
+  .cover::after { display: none; }
+
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--gold), var(--accent));
+    z-index: 5;
+  }
+
+  .inner {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 118px 130px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ---- type ------------------------------------------------------------ */
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(240, 240, 245, 0.62);
+    margin-bottom: 34px;
+  }
+  .eyebrow .rule {
+    width: 58px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--accent-light);
+  }
+
+  h1, h2 {
+    font-family: 'Jersey 20', sans-serif;
+    font-weight: 400;
+    line-height: 0.9;
+    letter-spacing: 0.005em;
+  }
+
+  .gradient-text {
+    background: linear-gradient(100deg, #B24FA9 0%, #DB92D4 38%, #ffd166 68%, #B24FA9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .lede {
+    font-size: 34px;
+    line-height: 1.5;
+    color: rgba(240, 240, 245, 0.72);
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  /* ---- cover ----------------------------------------------------------- */
+  .cover .inner { gap: 90px; }
+  .cover .copy { flex: 1 1 auto; }
+  .cover h1 { font-size: 168px; margin-bottom: 26px; }
+  .cover .tagline {
+    font-size: 46px;
+    line-height: 1.25;
+    color: rgba(240, 240, 245, 0.78);
+    margin-bottom: 46px;
+    max-width: 900px;
+  }
+  .cover .badges { display: flex; gap: 18px; align-items: center; }
+  .badge {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 14px 26px;
+    border-radius: 999px;
+    border: 2px solid rgba(219, 146, 212, 0.45);
+    color: rgba(240, 240, 245, 0.85);
+  }
+  .badge.free { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .cover .mark { flex: 0 0 auto; }
+  .cover .mark img { width: 420px; height: 420px; display: block; }
+
+  /* ---- feature slides -------------------------------------------------- */
+  .feature .inner { padding-right: 0; }
+  .feature .copy { width: 760px; flex: 0 0 auto; }
+  .feature h2 { font-size: 96px; margin-bottom: 30px; }
+  .feature .lede { max-width: 700px; }
+
+  .points { list-style: none; margin-top: 40px; display: flex; flex-direction: column; gap: 20px; }
+  .points li {
+    display: flex;
+    gap: 16px;
+    font-size: 25px;
+    line-height: 1.4;
+    color: rgba(240, 240, 245, 0.6);
+  }
+  .points li svg { flex: 0 0 auto; margin-top: 4px; }
+
+  /* ---- screenshot slabs ------------------------------------------------ */
+  .shot {
+    position: absolute;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .shot .chrome {
+    height: 40px;
+    background: #2a2a3e;
+    background-image:
+      radial-gradient(circle at 24px 20px, #ff5f57 6px, transparent 6.5px),
+      radial-gradient(circle at 48px 20px, #ffbd2e 6px, transparent 6.5px),
+      radial-gradient(circle at 72px 20px, #28ca42 6px, transparent 6.5px);
+  }
+  .shot .viewport { overflow: hidden; background: #e4edf6; position: relative; }
+  .shot img { display: block; width: 100%; position: absolute; left: 0; }
+
+  .caption {
+    font-size: 22px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(240, 240, 245, 0.5);
+    margin-bottom: 14px;
+  }
+  .caption b { color: var(--accent-light); font-weight: 600; }
+
+  /* ---- before / after -------------------------------------------------- */
+  .compare .inner { flex-direction: column; align-items: flex-start; padding-bottom: 60px; }
+  .compare h2 { font-size: 88px; margin-bottom: 18px; }
+  .compare .lede { font-size: 30px; max-width: 1280px; margin-bottom: 44px; }
+  .compare .pair { display: flex; gap: 56px; width: 100%; }
+  .compare .pane { flex: 1 1 0; min-width: 0; }
+  .compare .shot { position: relative; }
+
+  .arrow {
+    position: absolute;
+    left: 50%;
+    top: 640px;
+    transform: translateX(-50%);
+    z-index: 4;
+    width: 92px;
+    height: 92px;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 12px 40px rgba(147, 52, 140, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---- closing panel --------------------------------------------------- */
+  .closing .inner { flex-direction: column; align-items: flex-start; justify-content: center; }
+  .closing h2 { font-size: 104px; margin-bottom: 34px; }
+  .closing .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 26px 54px;
+    margin-top: 20px;
+    width: 1420px;
+  }
+  .closing .cell {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    background: rgba(37, 37, 64, 0.42);
+    padding: 28px 32px;
+  }
+  .closing .cell b { display: block; font-size: 28px; margin-bottom: 8px; color: var(--off-white); }
+  .closing .cell span { font-size: 23px; line-height: 1.45; color: rgba(240, 240, 245, 0.58); }
+
+  /* ---- layout diagram slide -------------------------------------------- */
+  .diagram {
+    position: absolute;
+    right: 130px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 800px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    background: rgba(15, 15, 26, 0.72);
+    padding: 44px 48px;
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 26px;
+    line-height: 1.65;
+    color: rgba(240, 240, 245, 0.72);
+    white-space: pre;
+  }
+  .diagram .tab { color: var(--off-white); font-weight: 600; }
+  .diagram .marker { color: var(--accent-light); }
+  .diagram .dim { color: rgba(240, 240, 245, 0.38); }
+  .diagram .gold { color: var(--gold); }
+
+  /* ---- footer lockup --------------------------------------------------- */
+  .footer {
+    position: absolute;
+    left: 130px;
+    bottom: 54px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 22px;
+    color: rgba(240, 240, 245, 0.42);
+  }
+  .footer img { width: 40px; height: 40px; border-radius: 9px; }
+  .footer b { color: rgba(240, 240, 245, 0.72); font-weight: 600; }
+
+  /* Only render the requested slide when screenshotting */
+  body.single .slide { display: none; }
+  body.single .slide.active { display: block; }
+
+  /* ---- control-panel screenshot cards -------------------------------
+     Self-contained: these cards must drop into any deck in the family, and the decks
+     do not share a class system. Only --accent and --off-white are relied on, both of
+     which every deck defines, and both have fallbacks. */
+  .slide.cpcard { display: block; }
+  .cpcard .cpc-inner {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 112px 120px;
+    display: flex;
+    align-items: center;
+    gap: 70px;
+  }
+  .cpcard .cpc-copy { width: 660px; flex: 0 0 660px; }
+
+  .cpcard .cpc-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 34px;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent-light, #7aa2c8);
+  }
+  .cpcard .cpc-eyebrow i {
+    display: block;
+    width: 62px;
+    height: 3px;
+    background: var(--accent-light, #7aa2c8);
+    border-radius: 2px;
+  }
+
+  .cpcard .cpc-h2 {
+    font-family: 'Jersey 20', 'Inter', sans-serif;
+    font-size: 88px;
+    line-height: 0.96;
+    font-weight: 400;
+    letter-spacing: 0.005em;
+    margin: 0 0 28px;
+    color: var(--off-white, #f0f0f5);
+  }
+
+  .cpcard .cpc-lede {
+    font-size: 33px;
+    line-height: 1.42;
+    color: rgba(240, 240, 245, 0.66);
+    margin: 0;
+  }
+
+  .cpcard .cpc-points { list-style: none; margin: 40px 0 0; padding: 0; }
+  .cpcard .cpc-points li {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    font-size: 26px;
+    line-height: 1.5;
+    color: rgba(240, 240, 245, 0.72);
+    margin-bottom: 18px;
+  }
+  .cpcard .cpc-points li::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    margin-top: 14px;
+    border-radius: 50%;
+    background: var(--accent, #7aa2c8);
+  }
+
+  .cpcard .cpc-panel { flex: 1 1 auto; min-width: 0; }
+
+  .cpcard .cpc-frame {
+    border-radius: 14px;
+    overflow: hidden;
+    background: #e4edf6;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55), 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+  .cpcard .cpc-chrome {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 18px;
+    background: linear-gradient(180deg, #2a2a3d 0%, #21212f 100%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.35);
+  }
+  .cpcard .cpc-chrome b { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.16); }
+  .cpcard .cpc-chrome b:nth-child(1) { background: #ff5f57; }
+  .cpcard .cpc-chrome b:nth-child(2) { background: #febc2e; }
+  .cpcard .cpc-chrome b:nth-child(3) { background: #28c840; }
+  .cpcard .cpc-chrome em {
+    margin-left: 12px;
+    font-style: normal;
+    font-size: 19px;
+    letter-spacing: 0.02em;
+    color: rgba(240, 240, 245, 0.45);
+  }
+  .cpcard .cpc-frame img { display: block; width: 100%; height: auto; }
+
+  /* A tall capture is anchored to its top — the interesting rows are always first.
+     The fade makes the cut read as "there is more" rather than as a broken edge. */
+  .cpcard .cpc-frame.cpc-clip { max-height: 620px; position: relative; }
+  .cpcard .cpc-frame.cpc-clip img { object-fit: cover; object-position: top center; max-height: 580px; }
+  .cpcard .cpc-frame.cpc-clip::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 130px;
+    background: linear-gradient(180deg, rgba(228,237,246,0) 0%, rgba(228,237,246,0.92) 78%, #e4edf6 100%);
+  }
+
+  .cpcard .cpc-caption {
+    display: block;
+    margin-top: 20px;
+    font-size: 22px;
+    line-height: 1.45;
+    color: rgba(240, 240, 245, 0.52);
+  }
+  .cpcard .cpc-caption b { color: rgba(240, 240, 245, 0.80); font-weight: 600; }
+
+
+
+  /* ---- console output (slide 2) ---------------------------------------- */
+  .term {
+    position: absolute; right: 110px; top: 50%; transform: translateY(-50%); width: 1010px;
+    border-radius: 14px; border: 1px solid rgba(255,255,255,0.09); background: rgba(15,15,26,0.80);
+    padding: 38px 44px; font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 21px; line-height: 1.9; color: rgba(240,240,245,0.62); white-space: pre;
+  }
+  .term .cmd { color: var(--off-white); }
+  .term .plus { color: #5ee0a0; font-weight: 700; }
+  .term .kind { color: rgba(240,240,245,0.42); }
+  .term .h { color: var(--accent-light); }
+  .term .done { color: var(--gold); }
+
+  /* ---- the plan (slide 3) ----------------------------------------------- */
+  .plan {
+    position: absolute; right: 120px; top: 50%; transform: translateY(-50%); width: 900px;
+    border-radius: 14px; border: 1px solid rgba(255,255,255,0.09); background: rgba(15,15,26,0.74);
+    padding: 34px 40px;
+  }
+  .plan table { width: 100%; border-collapse: collapse; }
+  .plan th, .plan td { text-align: left; padding: 17px 10px; font-size: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  .plan thead th { font-size: 17px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(240,240,245,0.45); font-weight: 600; padding-top: 0; }
+  .plan td.h { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; color: var(--off-white); }
+  .plan td.t { color: rgba(240,240,245,0.55); }
+  .plan tr:last-child td { border-bottom: 0; }
+  .pill { display: inline-block; font-size: 17px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; border-radius: 999px; padding: 6px 14px; }
+  .pill.create { background: rgba(94,224,160,0.16); color: #5ee0a0; }
+  .pill.reuse { background: rgba(255,209,102,0.16); color: var(--gold); }
+  .pill.conflict { background: rgba(255,107,107,0.18); color: #ff6b6b; }
+  .plan .stop { margin-top: 22px; padding: 18px 22px; border-radius: 10px; background: rgba(255,107,107,0.10); border: 1px solid rgba(255,107,107,0.35); font-size: 22px; color: rgba(240,240,245,0.78); }
+  .plan .stop b { color: #ff6b6b; }
+
+  /* ---- roles (slide 4) -------------------------------------------------- */
+  .roles { position: absolute; right: 110px; top: 50%; transform: translateY(-50%); width: 980px; display: flex; flex-direction: column; gap: 26px; }
+  .code {
+    border-radius: 14px; border: 1px solid rgba(255,255,255,0.09); background: rgba(15,15,26,0.80);
+    padding: 30px 38px; font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 23px; line-height: 1.8; color: rgba(240,240,245,0.72); white-space: pre;
+  }
+  .code .c { color: rgba(240,240,245,0.38); }
+  .code .s { color: var(--gold); }
+  .code .k { color: var(--accent-light); }
+  .rename { display: flex; align-items: center; gap: 22px; border-radius: 14px; border: 1px solid rgba(219,146,212,0.32); background: rgba(147,52,140,0.16); padding: 26px 34px; font-size: 24px; color: rgba(240,240,245,0.7); }
+  .rename code { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; color: var(--off-white); font-size: 24px; }
+  .rename del { color: rgba(240,240,245,0.4); }
+  .rename .ok { margin-left: auto; color: #5ee0a0; font-weight: 700; }
+
+  /* ---- the grid (slide 5) ----------------------------------------------- */
+  .site {
+    position: absolute; right: 100px; top: 50%; transform: translateY(-50%); width: 1020px;
+    border-radius: 14px; overflow: hidden; background: #f7f5f2; color: #1c1917;
+    box-shadow: 0 40px 90px rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.10);
+  }
+  .site .bar { height: 40px; background: linear-gradient(180deg, #2a2a3d 0%, #21212f 100%); display: flex; align-items: center; gap: 9px; padding: 0 18px; }
+  .site .bar b { width: 12px; height: 12px; border-radius: 50%; }
+  .site .bar b:nth-child(1) { background: #ff5f57; } .site .bar b:nth-child(2) { background: #febc2e; } .site .bar b:nth-child(3) { background: #28c840; }
+  .site .bar em { margin-left: 12px; font-style: normal; font-size: 17px; color: rgba(240,240,245,0.45); }
+  .site .body { padding: 30px 32px 34px; }
+  .site h3 { font-size: 30px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.01em; }
+  .chips { display: flex; gap: 10px; margin-bottom: 22px; }
+  .chip { font-size: 16px; font-weight: 600; padding: 8px 16px; border-radius: 999px; border: 1px solid #d6d3d1; color: #57534e; }
+  .chip.on { background: #1c1917; border-color: #1c1917; color: #fff; }
+  .masonry { columns: 3; column-gap: 16px; }
+  .card { break-inside: avoid; margin-bottom: 16px; }
+  .card .img { border-radius: 8px; }
+  .card b { display: block; font-size: 16px; margin-top: 8px; }
+  .card span { display: block; font-size: 13px; color: #78716c; }
+  .card.dim { opacity: 0.18; }
+</style>
+</head>
+<body>
+
+<!-- 1 · Cover ============================================================ -->
+<section class="slide cover" data-n="1">
+  <div class="inner">
+    <div class="copy">
+      <div class="eyebrow"><span class="rule"></span> Craft CMS 5</div>
+      <h1 class="gradient-text">Portfolio</h1>
+      <p class="tagline">A portfolio's whole content model in one go — and templates that never need a field handle.</p>
+      <div class="badges">
+        <span class="badge free">Lite free</span>
+        <span class="badge">Pro $49</span>
+      </div>
+    </div>
+    <div class="mark"><img src="assets/icon.svg" alt=""></div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Portfolio</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-portfolio</div>
+</section>
+
+<!-- 2 · One command ====================================================== -->
+<section class="slide feature" data-n="2">
+  <div class="inner">
+    <div class="copy" style="width: 640px;">
+      <div class="eyebrow"><span class="rule"></span> The scaffolding</div>
+      <h2>One command,<br>thirteen things</h2>
+      <p class="lede" style="max-width: 600px;">The section, entry type, nine fields and both taxonomies you would otherwise click together by hand.</p>
+      <ul class="points">
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DB92D4" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span class="t">Starter templates on request, never on install</span></li>
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DB92D4" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span class="t">Or the same thing from the control panel</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="term"><span class="cmd">$ php craft portfolio/setup/build --templates</span>
+<span class="plus">+</span> <span class="kind">section      </span> <span class="h">portfolio</span>               portfolio/{slug}
+<span class="plus">+</span> <span class="kind">entryType    </span> <span class="h">portfolioItem</span>
+<span class="plus">+</span> <span class="kind">categoryGroup</span> <span class="h">portfolioCategories</span>
+<span class="plus">+</span> <span class="kind">tagGroup     </span> <span class="h">portfolioTags</span>
+<span class="plus">+</span> <span class="kind">field        </span> <span class="h">portfolioSummary</span>        Plain Text
+<span class="plus">+</span> <span class="kind">field        </span> <span class="h">portfolioDescription</span>    CKEditor
+<span class="plus">+</span> <span class="kind">field        </span> <span class="h">portfolioFeaturedImage</span>  Assets
+<span class="plus">+</span> <span class="kind">field        </span> <span class="h">portfolioGallery</span>        Assets
+<span class="plus">+</span> <span class="kind">field        </span> <span class="h">portfolioClient</span>         Plain Text
+<span class="kind">  …and four more</span>
+<span class="done">/portfolio renders the moment it finishes.</span></div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Portfolio</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-portfolio</div>
+</section>
+
+<!-- 3 · Plan before you write ============================================= -->
+<section class="slide feature" data-n="3">
+  <div class="inner">
+    <div class="copy" style="width: 660px;">
+      <div class="eyebrow"><span class="rule"></span> Plan before you write</div>
+      <h2>Reads you<br>the plan first</h2>
+      <p class="lede" style="max-width: 620px;">Every item is create, reuse or conflict before a byte is written. A content model is not something you undo.</p>
+      <ul class="points">
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DB92D4" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span class="t">Never edits what it didn't create</span></li>
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DB92D4" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span class="t">Safe to run twice: the second run creates nothing</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="plan">
+    <table>
+      <thead><tr><th>Handle</th><th>Type</th><th>Outcome</th></tr></thead>
+      <tbody>
+        <tr><td class="h">portfolio</td><td class="t">Section</td><td><span class="pill create">create</span></td></tr>
+        <tr><td class="h">portfolioCategories</td><td class="t">Category group</td><td><span class="pill create">create</span></td></tr>
+        <tr><td class="h">portfolioSummary</td><td class="t">Plain Text</td><td><span class="pill reuse">reuse</span></td></tr>
+        <tr><td class="h">portfolioGallery</td><td class="t">Assets</td><td><span class="pill create">create</span></td></tr>
+        <tr><td class="h">portfolioClient</td><td class="t">Plain Text</td><td><span class="pill conflict">conflict</span></td></tr>
+      </tbody>
+    </table>
+    <div class="stop"><b>Build stopped.</b> <code class="mono">portfolioClient</code> is already a Dropdown. Rename it or choose another handle — it will not be reshaped.</div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Portfolio</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-portfolio</div>
+</section>
+
+<!-- 4 · Roles ============================================================ -->
+<section class="slide feature" data-n="4">
+  <div class="inner">
+    <div class="copy" style="width: 640px;">
+      <div class="eyebrow"><span class="rule"></span> Roles, not handles</div>
+      <h2>Rename a field.<br>Nothing breaks.</h2>
+      <p class="lede" style="max-width: 600px;">Templates ask for a role. The plugin looks the field up by UID at the moment it is asked.</p>
+      <ul class="points">
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DB92D4" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span class="t">The same templates work on a section you adopt (Pro)</span></li>
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DB92D4" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span class="t">Untick a role and everything skips it</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="roles">
+    <div class="code"><span class="c">{# every project for one client, in one category #}</span>
+<span class="k">{%</span> for item in craft.portfolio.items({
+     client: <span class="s">'Harbor Co.'</span>, category: <span class="s">'branding'</span> }).all() <span class="k">%}</span>
+  {{ item|portfolioField(<span class="s">'summary'</span>) }}
+<span class="k">{%</span> endfor <span class="k">%}</span>
+
+{{ craft.portfolio.next(entry).url }}
+{{ craft.portfolio.related(entry, 3)|length }}</div>
+    <div class="rename"><code><del>portfolioClient</del></code> → <code>clientName</code><span class="ok">✓ still renders</span></div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Portfolio</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-portfolio</div>
+</section>
+
+<!-- 5 · The grid (Pro) =================================================== -->
+<section class="slide feature" data-n="5">
+  <div class="inner">
+    <div class="copy" style="width: 620px;">
+      <div class="eyebrow"><span class="rule"></span> Pro</div>
+      <h2>One line,<br>a whole grid</h2>
+      <p class="lede" style="max-width: 580px;">Grid, masonry or list, a filter bar and a keyboard-accessible lightbox.</p>
+      <ul class="points">
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DB92D4" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span class="t">Filtering is client-side: one cacheable page</span></li>
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DB92D4" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span class="t">No build step, no head() or endBody() needed</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="site">
+    <div class="bar"><b></b><b></b><b></b><em>{{ craft.portfolio.grid({ layout: 'masonry' }) }}</em></div>
+    <div class="body">
+      <h3>Selected work</h3>
+      <div class="chips"><span class="chip">All</span><span class="chip on">Branding</span><span class="chip">Product</span><span class="chip">Print</span></div>
+      <div class="masonry"><div class="card"><div class="img" style="height:190px;background:linear-gradient(135deg,#93348C,#DB92D4)"></div><b>Harbor Coffee rebrand</b><span>Branding · Harbor Co.</span></div><div class="card dim"><div class="img" style="height:120px;background:linear-gradient(135deg,#334155,#64748b)"></div><b>Field Notes app</b><span>Product · Ledgerline</span></div><div class="card dim"><div class="img" style="height:150px;background:linear-gradient(135deg,#b45309,#fbbf24)"></div><b>Annual report 2026</b><span>Print · Northwind</span></div><div class="card"><div class="img" style="height:230px;background:linear-gradient(135deg,#0f766e,#5eead4)"></div><b>Kiln &amp; Co. identity</b><span>Branding · Kiln &amp; Co.</span></div><div class="card"><div class="img" style="height:140px;background:linear-gradient(135deg,#7c2d12,#fb923c)"></div><b>Trailhead wayfinding</b><span>Branding · City of Ash</span></div><div class="card dim"><div class="img" style="height:170px;background:linear-gradient(135deg,#1e3a8a,#60a5fa)"></div><b>Atlas dashboard</b><span>Product · Atlas</span></div></div>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Portfolio</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-portfolio</div>
+</section>
+
+<!-- 6 · In the control panel (real CP screenshot) ======================== -->
+<section class="slide cpcard" data-n="6">
+  <div class="cpc-inner">
+    <div class="cpc-copy">
+      <div class="cpc-eyebrow"><i></i> In the control panel</div>
+      <h2 class="cpc-h2">Build it<br>from the CP</h2>
+      <p class="cpc-lede">Name it, pick the roles, read the plan, build. Drift is reported when a field the map points at goes missing.</p>
+      <ul class="cpc-points">
+        <li>Forgetting a portfolio never deletes its content</li>
+      </ul>
+    </div>
+    <div class="cpc-panel">
+      <figure class="cpc-frame cpc-clip">
+        <div class="cpc-chrome"><b></b><b></b><b></b><em>Portfolio → New portfolio</em></div>
+        <img src="shots/portfolio-build.png" alt="">
+      </figure>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Portfolio</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-portfolio</div>
+</section>
+
+<!-- 7 · Editions ========================================================= -->
+<section class="slide closing" data-n="7">
+  <div class="inner">
+    <div class="eyebrow"><span class="rule"></span> Lite is free · Pro is $49</div>
+    <h2>The model is free.<br>Presentation is Pro.</h2>
+    <div class="grid">
+      <div class="cell"><b>Lite</b><span>One portfolio: the whole content model, the query API, starter templates, tag archives, the console.</span></div>
+      <div class="cell"><b>Pro</b><span>Unlimited portfolios, adopting a section you built by hand, the drop-in grid, and CreativeWork JSON-LD.</span></div>
+      <div class="cell"><b>Nothing derived</b><span>No tables, no install migration. A portfolio lives in project config and deploys like the rest of your schema.</span></div>
+      <div class="cell"><b>Uninstall leaves your content</b><span>Section, fields and entries stay put. Taking the schema away is a separate act, with the damage counted first.</span></div>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Portfolio</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-portfolio</div>
+</section>
+<script>
+  var n = new URLSearchParams(location.search).get('s');
+  if (n) {
+    document.body.classList.add('single');
+    var el = document.querySelector('.slide[data-n="' + n + '"]');
+    if (el) el.classList.add('active');
+  }
+</script>
+</body>
+</html>

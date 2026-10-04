@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Only the two peaks from the picture in the icon's tallest tile. The sun is left out too: at this
+       scale it lands behind the content panels as a grey disc. The tiles themselves are
+       large flat rectangles, and at watermark scale any flat rectangle reads as a grey box across
+       the slide, so they are left out. Filled white; the slide's opacity does the fading. -->
+  <g fill="#FFFFFF">
+    <path d="M0,100 L36,52 L56,76 L70,60 L100,100 Z"/>
+  </g>
+</svg>

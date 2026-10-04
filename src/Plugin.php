@@ -11,6 +11,7 @@ use craft\services\ProjectConfig;
 use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
+use justinholtweb\portfolio\models\Portfolio;
 use justinholtweb\portfolio\models\Settings;
 use justinholtweb\portfolio\services\Builder;
 use justinholtweb\portfolio\services\Jsonld;
@@ -175,7 +176,9 @@ class Plugin extends BasePlugin
             }
 
             foreach ($this->portfolios->getAllPortfolios() as $portfolio) {
-                if ($portfolio->tagGroupUid === null) {
+                // The root is spliced into a URL rule pattern; one hand-edited into project config
+                // with regex characters in it would take the whole rule set down with it.
+                if ($portfolio->tagGroupUid === null || !preg_match(Portfolio::TEMPLATE_ROOT_PATTERN, $portfolio->templateRoot)) {
                     continue;
                 }
 

@@ -1,35 +1,111 @@
-{% extends "_layouts/cp" %}
-{% import "_includes/forms" as forms %}
+{# =========================================================================
+   Portfolio: build
+   A blueprint form that posts to itself. The first post returns a plan;
+   only a post carrying `confirm` (the Build button's own value) writes.
+   ========================================================================= #}
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
 
-{% set title = "Build a portfolio"|t('portfolio') %}
+{% set title = 'Build a portfolio'|t('portfolio') %}
 {% set selectedSubnavItem = 'portfolios' %}
 {% set fullPageForm = true %}
-{% set crumbs = [{ label: "Portfolios"|t('portfolio'), url: url('portfolio') }] %}
+{% set crumbs = [{ label: 'Portfolios'|t('portfolio'), url: cpUrl('portfolio') }] %}
+
+{% set canBuild = plan and not plan.isBlocked() and canAdd %}
+{% set request = craft.app.request %}
+
+{# The plan button comes first in the form, so Enter in a text field (and Craft's save shortcut)
+   re-plans rather than building something nobody has read. `confirm` is carried only by the
+   Build button's own value, never by a hidden input, for the same reason. #}
+{% block actionButton %}
+    <button type="submit" class="btn{{ not canBuild ? ' submit' }}">
+        {{ plan ? 'Re-plan'|t('portfolio') : 'Show me the plan'|t('portfolio') }}
+    </button>
+    {% if canBuild %}
+        <button type="submit" name="confirm" value="1" class="btn submit">{{ 'Build it'|t('portfolio') }}</button>
+    {% endif %}
+{% endblock %}
 
 {% block content %}
     {{ actionInput('portfolio/portfolios/build') }}
 
     {% if not canAdd %}
-        <p class="error">{{ limitMessage }}</p>
+        <div class="readable">
+            <blockquote class="note warning">
+                <p>{{ limitMessage }}</p>
+            </blockquote>
+        </div>
+        <hr>
     {% endif %}
 
-    <p class="light">
-        {{ "Nothing is written until you have read the plan and confirmed it. Anything that already exists with the same handle is reused exactly as it is, never rewritten."|t('portfolio') }}
-    </p>
+    {% if plan %}
+        <h2>{{ 'The plan'|t('portfolio') }}</h2>
+
+        {% if plan.blockers is not empty %}
+            <div class="readable">
+                <blockquote class="note warning">
+                    <p>{{ 'Nothing can be built until these are resolved:'|t('portfolio') }}</p>
+                    <ul class="bullets">
+                        {% for blocker in plan.blockers %}<li>{{ blocker }}</li>{% endfor %}
+                    </ul>
+                </blockquote>
+            </div>
+        {% endif %}
+
+        <div class="tableview">
+            <table class="data fullwidth collapsible">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ 'Action'|t('portfolio') }}</th>
+                        <th scope="col">{{ 'Kind'|t('portfolio') }}</th>
+                        <th scope="col">{{ 'Handle'|t('portfolio') }}</th>
+                        <th scope="col">{{ 'Note'|t('portfolio') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in plan.items %}
+                        <tr>
+                            <td data-title="{{ 'Action'|t('portfolio') }}">
+                                {% if item.isCreate() %}
+                                    <span class="status on" aria-hidden="true"></span>{{ 'Create'|t('portfolio') }}
+                                {% elseif item.isReuse() %}
+                                    <span class="status gray" aria-hidden="true"></span>{{ 'Reuse'|t('portfolio') }}
+                                {% else %}
+                                    <span class="status red" aria-hidden="true"></span><span class="error">{{ 'Conflict'|t('portfolio') }}</span>
+                                {% endif %}
+                            </td>
+                            <td data-title="{{ 'Kind'|t('portfolio') }}" class="light">{{ item.kind }}</td>
+                            <td data-title="{{ 'Handle'|t('portfolio') }}"><code>{{ item.handle }}</code></td>
+                            <td data-title="{{ 'Note'|t('portfolio') }}" class="light">{{ item.note }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <p class="light">{{ plan.summary() }}</p>
+
+        <hr>
+    {% else %}
+        <p class="light">
+            {{ 'Nothing is written until you have read the plan and confirmed it. Anything that already exists with the same handle is reused exactly as it is, never rewritten.'|t('portfolio') }}
+        </p>
+    {% endif %}
 
     {{ forms.textField({
-        label: "Name"|t('portfolio'),
-        instructions: "What the section is called in the control panel."|t('portfolio'),
+        label: 'Name'|t('portfolio'),
+        instructions: 'What the section is called in the control panel.'|t('portfolio'),
         id: 'name',
         name: 'name',
         value: blueprint.name,
         required: true,
+        first: true,
         errors: blueprint.getErrors('name'),
     }) }}
 
     {{ forms.textField({
-        label: "Handle"|t('portfolio'),
-        instructions: "The section, entry type, fields and taxonomy groups are all named from this. `work` gives you a `work` section, a `workItem` entry type and a `workClient` field."|t('portfolio'),
+        label: 'Handle'|t('portfolio'),
+        instructions: 'The section, entry type, fields and taxonomy groups are all named from this. `work` gives you a `work` section, a `workItem` entry type and a `workClient` field.'|t('portfolio'),
         id: 'handle',
         name: 'handle',
         value: blueprint.handle,
@@ -39,164 +115,123 @@
     }) }}
 
     {{ forms.selectField({
-        label: "Section type"|t('portfolio'),
-        instructions: "A structure lets an author drag projects into the order they want them shown. A channel orders by date."|t('portfolio'),
+        label: 'Section type'|t('portfolio'),
+        instructions: 'A structure lets an author drag projects into the order they want them shown. A channel orders by date.'|t('portfolio'),
         id: 'sectionType',
         name: 'sectionType',
         options: sectionTypes,
         value: blueprint.sectionType,
+        errors: blueprint.getErrors('sectionType'),
     }) }}
 
     {% if siteOptions|length > 1 %}
         {{ forms.checkboxSelectField({
-            label: "Sites"|t('portfolio'),
-            instructions: "Leave everything ticked to enable the portfolio on every site."|t('portfolio'),
+            label: 'Sites'|t('portfolio'),
+            instructions: 'Leave everything ticked to enable the portfolio on every site.'|t('portfolio'),
             id: 'siteUids',
             name: 'siteUids',
             options: siteOptions,
             values: blueprint.siteUids ?: siteOptions|column('value'),
+            errors: blueprint.getErrors('siteUids'),
         }) }}
     {% endif %}
 
     <hr>
 
-    <h2>{{ "Fields"|t('portfolio') }}</h2>
-    <p class="light">
-        {{ "Each field plays a *role*. Templates ask for the role, so you can rename any of these fields afterwards and nothing breaks."|t('portfolio')|md(inlineOnly=true) }}
-    </p>
+    <h2>{{ 'Fields'|t('portfolio') }}</h2>
 
-    <div class="field">
-        <div class="input">
-            {% for role in roles %}
-                <div style="margin-bottom: 6px;">
-                    {{ forms.checkbox({
-                        id: 'role-' ~ role,
-                        name: 'roles[]',
-                        value: role,
-                        checked: blueprint.hasRole(role),
-                        label: roleLabels[role] ?? role,
-                    }) }}
-                    <span class="light" style="margin-left: 6px;">
-                        <span class="code">{{ blueprint.fieldHandle(role) }}</span>
-                        — {{ roleDescriptions[role] ?? '' }}
-                    </span>
-                </div>
-            {% endfor %}
-        </div>
-    </div>
+    {% set roleOptions = [] %}
+    {% for role in roles %}
+        {% set roleOptions = roleOptions|push({
+            label: roleLabels[role] ?? role,
+            value: role,
+            info: (roleDescriptions[role] ?? '') ~ "\n\n" ~ 'Field handle: `{handle}`'|t('portfolio', { handle: blueprint.fieldHandle(role)|e }),
+        }) %}
+    {% endfor %}
+
+    {{ forms.checkboxGroupField({
+        label: 'Roles'|t('portfolio'),
+        instructions: 'Each field plays a *role*. Templates ask for the role, so you can rename any of these fields afterwards and nothing breaks.'|t('portfolio'),
+        id: 'roles',
+        name: 'roles',
+        options: roleOptions,
+        values: roles|filter(role => blueprint.hasRole(role)),
+        errors: blueprint.getErrors('roles'),
+    }) }}
 
     {{ forms.selectField({
-        label: "Image volume"|t('portfolio'),
-        instructions: "Which volume the featured image and gallery fields upload into."|t('portfolio'),
+        label: 'Image volume'|t('portfolio'),
+        instructions: 'Which volume the featured image and gallery fields upload into.'|t('portfolio'),
         id: 'assetVolumeUid',
         name: 'assetVolumeUid',
         options: volumes,
         value: blueprint.assetVolumeUid,
+        errors: blueprint.getErrors('assetVolumeUid'),
     }) }}
 
     {% if ckeditor %}
         {{ forms.lightswitchField({
-            label: "Use CKEditor for the description"|t('portfolio'),
-            instructions: "CKEditor is installed, so the description can be a rich text field. Turn this off for plain text."|t('portfolio'),
+            label: 'Use CKEditor for the description'|t('portfolio'),
+            instructions: 'CKEditor is installed, so the description can be a rich text field. Turn this off for plain text.'|t('portfolio'),
             id: 'useCkeditor',
             name: 'useCkeditor',
             on: blueprint.useCkeditor,
         }) }}
     {% else %}
-        <p class="light">{{ "The description will be a multi-line plain text field. Install `craftcms/ckeditor` first if you would rather have rich text."|t('portfolio')|md(inlineOnly=true) }}</p>
+        <p class="light">{{ 'The description will be a multi-line plain text field. Install `craftcms/ckeditor` first if you would rather have rich text.'|t('portfolio')|md(inlineOnly=true) }}</p>
     {% endif %}
 
     <hr>
 
-    <h2>{{ "URLs and templates"|t('portfolio') }}</h2>
+    <h2>{{ 'URLs and templates'|t('portfolio') }}</h2>
+
+    {# A value that only restates the handle-derived default is shown as a placeholder, not posted
+       back, so changing the handle re-derives it instead of keeping the old handle's paths. #}
+    {% set base = blueprint.baseUri() %}
+    {% set derived = {
+        uriFormat: base ~ '/{slug}',
+        categoryUriFormat: base ~ '/category/{slug}',
+        templateRoot: base,
+    } %}
 
     {{ forms.textField({
-        label: "Item URI"|t('portfolio'),
+        label: 'Item URI'|t('portfolio'),
+        instructions: 'The URI format for each portfolio item. Leave blank to work it out from the handle.'|t('portfolio'),
         id: 'uriFormat',
         name: 'uriFormat',
-        value: blueprint.uriFormat,
+        value: blueprint.uriFormat != derived.uriFormat ? blueprint.uriFormat : '',
+        placeholder: derived.uriFormat,
         class: 'code',
-        placeholder: 'portfolio/{slug}',
+        errors: blueprint.getErrors('uriFormat'),
     }) }}
 
     {{ forms.textField({
-        label: "Category archive URI"|t('portfolio'),
+        label: 'Category archive URI'|t('portfolio'),
+        instructions: 'The URI format for each category archive. Leave blank to work it out from the handle.'|t('portfolio'),
         id: 'categoryUriFormat',
         name: 'categoryUriFormat',
-        value: blueprint.categoryUriFormat,
+        value: blueprint.categoryUriFormat != derived.categoryUriFormat ? blueprint.categoryUriFormat : '',
+        placeholder: derived.categoryUriFormat,
         class: 'code',
-        placeholder: 'portfolio/category/{slug}',
+        errors: blueprint.getErrors('categoryUriFormat'),
     }) }}
 
     {{ forms.textField({
-        label: "Template folder"|t('portfolio'),
-        instructions: "Where the starter templates go, and where Craft looks for the item and archive templates."|t('portfolio'),
+        label: 'Template folder'|t('portfolio'),
+        instructions: 'Where the starter templates go, and where Craft looks for the item and archive templates. A path inside the templates folder, like `work` or `work/projects`. Leave blank to work it out from the handle.'|t('portfolio'),
         id: 'templateRoot',
         name: 'templateRoot',
-        value: blueprint.templateRoot,
+        value: blueprint.templateRoot != derived.templateRoot ? blueprint.templateRoot : '',
+        placeholder: derived.templateRoot,
         class: 'code',
+        errors: blueprint.getErrors('templateRoot'),
     }) }}
 
     {{ forms.lightswitchField({
-        label: "Write the starter templates"|t('portfolio'),
-        instructions: "Puts working index, item, category and tag templates on disk. Existing files are never overwritten."|t('portfolio'),
+        label: 'Write the starter templates'|t('portfolio'),
+        instructions: 'Puts working index, item, category and tag templates on disk. Existing files are never overwritten.'|t('portfolio'),
         id: 'writeTemplates',
         name: 'writeTemplates',
-        on: true,
+        on: request.isPost ? request.getBodyParam('writeTemplates') is not empty : true,
     }) }}
-
-    <hr>
-
-    {% if plan %}
-        <h2>{{ "The plan"|t('portfolio') }}</h2>
-
-        {% if plan.blockers is not empty %}
-            <ul class="errors">
-                {% for blocker in plan.blockers %}<li>{{ blocker }}</li>{% endfor %}
-            </ul>
-        {% endif %}
-
-        <table class="data fullwidth">
-            <thead>
-                <tr>
-                    <th scope="col">{{ "Action"|t('portfolio') }}</th>
-                    <th scope="col">{{ "Kind"|t('portfolio') }}</th>
-                    <th scope="col">{{ "Handle"|t('portfolio') }}</th>
-                    <th scope="col">{{ "Note"|t('portfolio') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in plan.items %}
-                    <tr>
-                        <td>
-                            {% if item.isCreate() %}
-                                <span class="status green"></span> {{ "create"|t('portfolio') }}
-                            {% elseif item.isReuse() %}
-                                <span class="status"></span> {{ "reuse"|t('portfolio') }}
-                            {% else %}
-                                <span class="status red"></span> <span class="error">{{ "conflict"|t('portfolio') }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="light">{{ item.kind }}</td>
-                        <td class="code">{{ item.handle }}</td>
-                        <td class="light">{{ item.note }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <p class="light">{{ plan.summary() }}</p>
-
-        {# The re-plan button comes first so that pressing enter in a text field re-plans rather
-           than building something the person has not read. `confirm` is carried by the build
-           button's own value, never by a hidden input, for the same reason. #}
-        <p>
-            <button type="submit" class="btn">{{ "Re-plan"|t('portfolio') }}</button>
-            {% if not plan.isBlocked() and canAdd %}
-                <button type="submit" name="confirm" value="1" class="btn submit big">{{ "Build it"|t('portfolio') }}</button>
-            {% endif %}
-        </p>
-    {% else %}
-        <p><button type="submit" class="btn submit big">{{ "Show me the plan"|t('portfolio') }}</button></p>
-    {% endif %}
 {% endblock %}

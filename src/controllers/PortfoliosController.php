@@ -89,7 +89,7 @@ class PortfoliosController extends Controller
                         $plugin->starter->write($result->portfolio, false);
                     }
 
-                    Craft::$app->getSession()->setNotice(Craft::t('portfolio', 'Portfolio built — {summary}.', [
+                    Craft::$app->getSession()->setNotice(Craft::t('portfolio', 'Portfolio built: {summary}.', [
                         'summary' => $result->summary(),
                     ]));
 
@@ -114,8 +114,8 @@ class PortfoliosController extends Controller
             'volumes' => $this->volumeOptions(),
             'siteOptions' => $this->siteOptions(),
             'sectionTypes' => [
-                ['value' => Section::TYPE_STRUCTURE, 'label' => Craft::t('portfolio', 'Structure — orderable by hand')],
-                ['value' => Section::TYPE_CHANNEL, 'label' => Craft::t('portfolio', 'Channel — ordered by date')],
+                ['value' => Section::TYPE_STRUCTURE, 'label' => Craft::t('portfolio', 'Structure, orderable by hand')],
+                ['value' => Section::TYPE_CHANNEL, 'label' => Craft::t('portfolio', 'Channel, ordered by date')],
             ],
             'ckeditor' => Blueprint::ckeditorAvailable(),
         ]);
@@ -140,6 +140,7 @@ class PortfoliosController extends Controller
 
         $request = Craft::$app->getRequest();
         $sections = $plugin->portfolios->adoptableSections();
+        $portfolio = null;
 
         if ($request->getIsPost()) {
             $this->requirePostRequest();
@@ -202,14 +203,12 @@ class PortfoliosController extends Controller
                 return $this->redirect('portfolio/' . $portfolio->uid);
             }
 
-            foreach ($portfolio->getErrors() as $errors) {
-                foreach ($errors as $error) {
-                    Craft::$app->getSession()->setError($error);
-                }
-            }
+            // The errors render on their fields; the template gets the unsaved model back.
+            Craft::$app->getSession()->setError(Craft::t('portfolio', 'Could not adopt the section.'));
         }
 
         return $this->renderTemplate('portfolio/_adopt', [
+            'portfolio' => $portfolio,
             'sections' => $sections,
             'roles' => Role::all(),
             'roleLabels' => $this->roleLabels(),
@@ -244,6 +243,9 @@ class PortfoliosController extends Controller
     {
         $this->requirePostRequest();
         $this->requirePermission(Plugin::PERMISSION_MANAGE);
+        // Admin, as the CP button is: this writes into — and with `force`, over — the site's own
+        // templates. Not `allowAdminChanges`, though: no project config is touched.
+        $this->requireAdmin(false);
 
         $plugin = Plugin::getInstance();
         $portfolio = $plugin->portfolios->getPortfolioByUid((string)Craft::$app->getRequest()->getBodyParam('portfolioUid'));

@@ -39,7 +39,9 @@ Two rules everything else follows from:
    recognise, so nobody should discover what happened by reading a project-config diff.
 2. **Never edit what you did not create.** A handle taken by the right type is reused *as it is*.
    A handle taken by the wrong type is a conflict and stops the build. As a consequence, `build()`
-   is safe to run twice — the second run creates nothing.
+   is safe to run twice — the second run creates nothing. The rule covers deleting too: `build()`
+   records the UIDs its plan marked *create* in `Portfolio::$created`, and `teardown()` deletes only
+   those. Forgetting a portfolio drops that record, so a forget-then-rebuild claims nothing.
 
 ### Why the role map exists
 
@@ -129,7 +131,7 @@ No local PHP on this Mac. Everything runs inside the plugin-testing container:
 
 ```sh
 cd ~/Sites/plugin-testing
-docker exec -w /var/www/html ddev-plugin-testing-web php /var/www/craft-portfolio/tests/integration/checks.php   # 60 checks
+docker exec -w /var/www/html ddev-plugin-testing-web php /var/www/craft-portfolio/tests/integration/checks.php   # 68 checks
 ddev exec bash -c 'find /var/www/craft-portfolio/src -name "*.php" -print0 | xargs -0 -n1 php -l'
 ```
 

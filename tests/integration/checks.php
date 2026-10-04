@@ -18,11 +18,13 @@ require $root . '/bootstrap.php';
 /** @var craft\console\Application $app */
 $app = require CRAFT_VENDOR_PATH . '/craftcms/cms/bootstrap/console.php';
 
+use craft\db\Table;
 use craft\elements\Category;
 use craft\elements\Entry;
 use craft\elements\Tag;
 use craft\fields\Assets;
 use craft\fields\PlainText;
+use craft\helpers\Db;
 use craft\models\Section;
 use justinholtweb\portfolio\models\Blueprint;
 use justinholtweb\portfolio\models\PlanItem;
@@ -73,6 +75,64 @@ function sweep(): void
 {
     $plugin = plugin();
 
+    // A run killed mid-write (the harness DB restarts under us) can leave rows that never reached
+    // project config. Every delete below goes through project config, so for those it returns true
+    // and does nothing, and the next run's "clean slate" check fails on them. Stamp only those
+    // orphans deleted, the way Craft's own handlers would, and do it first, before anything
+    // memoizes them. Rows that are in project config are left to the real deletes below.
+    $projectConfig = Craft::$app->getProjectConfig();
+    $tables = [
+        Table::SECTIONS => 'sections',
+        Table::ENTRYTYPES => 'entryTypes',
+        Table::FIELDS => 'fields',
+        Table::CATEGORYGROUPS => 'categoryGroups',
+        Table::TAGGROUPS => 'tagGroups',
+    ];
+    // Their elements too: an orphan group's live categories still hold their URIs, so new
+    // fixtures with the same titles come out slugged `alpha-1` and every slug filter misses.
+    $owners = [
+        Table::SECTIONS => [Table::ENTRIES, 'sectionId'],
+        Table::CATEGORYGROUPS => [Table::CATEGORIES, 'groupId'],
+        Table::TAGGROUPS => [Table::TAGS, 'groupId'],
+    ];
+    $db = Craft::$app->getDb();
+    $now = Db::prepareDateForDb(new DateTime());
+
+    foreach ($tables as $table => $configKey) {
+        $orphanIds = (new craft\db\Query())
+            ->select('id')
+            ->from($table)
+            ->where([
+                'and',
+                ['like', 'handle', HANDLE . '%', false],
+                ['dateDeleted' => null],
+                ['not in', 'uid', array_keys($projectConfig->get($configKey) ?? [])],
+            ])
+            ->column();
+
+        if ($orphanIds === []) {
+            continue;
+        }
+
+        $db->createCommand()->update($table, ['dateDeleted' => $now], ['id' => $orphanIds], [], false)->execute();
+    }
+
+    // Then any element still live inside a deleted `portfolioTest*` container, whichever run
+    // deleted it — the orphan pass above, or an earlier sweep that ran before this one existed.
+    foreach ($owners as $table => [$elementTable, $column]) {
+        $elementIds = (new craft\db\Query())
+            ->select('e.id')
+            ->from(['x' => $elementTable])
+            ->innerJoin(['o' => $table], "[[o.id]] = [[x.$column]]")
+            ->innerJoin(['e' => Table::ELEMENTS], '[[e.id]] = [[x.id]]')
+            ->where(['and', ['like', 'o.handle', HANDLE . '%', false], ['not', ['o.dateDeleted' => null]], ['e.dateDeleted' => null]])
+            ->column();
+
+        if ($elementIds !== []) {
+            $db->createCommand()->update(Table::ELEMENTS, ['dateDeleted' => $now], ['id' => $elementIds], [], false)->execute();
+        }
+    }
+
     foreach ($plugin->portfolios->getAllPortfolios() as $portfolio) {
         if (str_starts_with($portfolio->handle, HANDLE)) {
             $plugin->builder->teardown($portfolio);
@@ -109,6 +169,17 @@ function sweep(): void
         if (str_starts_with($group->handle, HANDLE)) {
             Craft::$app->getTags()->deleteTagGroup($group);
         }
+    }
+
+    Craft::$app->getEntries()->refreshEntryTypes();
+    Craft::$app->getFields()->refreshFields();
+    // The starter templates land in the site's own templates directory, so they are swept too —
+    // here rather than only at the end, or a run that died leaves them to fail "templates are
+    // written" on the next one (write() rightly refuses to overwrite).
+    $templateDir = Craft::$app->getPath()->getSiteTemplatesPath() . '/portfolio-test';
+
+    if (is_dir($templateDir)) {
+        craft\helpers\FileHelper::removeDirectory($templateDir);
     }
 
     $plugin->portfolios->clearCaches();
@@ -215,6 +286,18 @@ try {
             && count($trimmed->ofKind(PlanItem::KIND_FIELD)) === 7
             ? true
             : 'unexpected shape: ' . $trimmed->summary();
+    });
+
+    check('a template root that climbs out of templates/ blocks the plan', function() {
+        $blocked = [];
+
+        foreach (['../config', '/etc', "work'~x~'", 'work/../../web'] as $root) {
+            if (!plugin()->builder->plan(blueprint(['templateRoot' => $root]))->isBlocked()) {
+                $blocked[] = $root;
+            }
+        }
+
+        return $blocked === [] ? true : 'planned without a blocker: ' . implode(', ', $blocked);
     });
 
     // ------------------------------------------------------------------ conflicts
@@ -670,6 +753,44 @@ try {
             : 'force did not overwrite';
     });
 
+    check('a portfolio name is written as text, never as Twig or HTML', function() use ($portfolio, $templateRoot) {
+        $named = clone $portfolio;
+        $named->name = 'Evil {{ 7*7 }} {% exit %} #} <script>x</script>';
+
+        try {
+            plugin()->starter->write($named, true);
+            $contents = file_get_contents($templateRoot . '/index.twig');
+        } finally {
+            plugin()->starter->write($portfolio, true);
+        }
+
+        return !str_contains($contents, '{{ 7*7 }}')
+            && !str_contains($contents, '{% exit %}')
+            && !str_contains($contents, '#} ')
+            && !str_contains($contents, '<script>')
+            && str_contains($contents, '&#123;&#123; 7*7 &#125;&#125;')
+            ? true
+            : 'the name reached the template unescaped';
+    });
+
+    check('a template root outside templates/ is refused at write time', function() use ($portfolio) {
+        // As if hand-edited into project config, where the model's validation never ran.
+        $escaping = clone $portfolio;
+        $escaping->templateRoot = '../portfolio-test-escape';
+        $outside = dirname(plugin()->starter->templatesPath()) . '/portfolio-test-escape';
+
+        $results = plugin()->starter->write($escaping, true);
+        $escaped = is_dir($outside);
+
+        if ($escaped) {
+            craft\helpers\FileHelper::removeDirectory($outside);
+        }
+
+        return !$escaped && count($results) === 1 && $results[0]['status'] === StarterTemplates::FAILED
+            ? true
+            : 'templates were written outside the templates directory';
+    });
+
     // ------------------------------------------------------------------ Pro surfaces
 
     heading('Pro surfaces');
@@ -732,6 +853,26 @@ try {
             return plugin()->jsonld->data(Entry::find()->id($entries['two']->id)->one(), $portfolio) === null
                 ? true
                 : 'structured data was emitted with the setting off';
+        } finally {
+            $settings->jsonLd = $was;
+        }
+    });
+
+    check('an entry title cannot close the JSON-LD script tag', function() use ($portfolio, $entries) {
+        $settings = plugin()->getSettings();
+        $was = $settings->jsonLd;
+        $settings->jsonLd = true;
+
+        try {
+            $entry = Entry::find()->id($entries['two']->id)->one();
+            $entry->title = 'Two</script><script>alert(1)</script>';
+            $html = (string)plugin()->jsonld->render($entry, $portfolio);
+            $json = preg_replace('#^<script type="application/ld\+json">(.*)</script>$#s', '$1', $html);
+
+            return substr_count(strtolower($html), '</script') === 1
+                && (json_decode($json, true)['name'] ?? null) === $entry->title
+                ? true
+                : 'the title broke out of the script tag: ' . $html;
         } finally {
             $settings->jsonLd = $was;
         }
@@ -873,14 +1014,56 @@ try {
             : 'live roles: ' . implode(', ', $reloaded->liveRoles());
     });
 
+    check('a second portfolio cannot take an existing handle', function() use ($portfolio) {
+        $twin = new Portfolio([
+            'name' => 'Twin',
+            'handle' => HANDLE,
+            'sectionUid' => $portfolio->sectionUid,
+            'entryTypeUid' => $portfolio->entryTypeUid,
+            'templateRoot' => 'portfolio-test-twin',
+        ]);
+
+        return !$twin->validate() && $twin->hasErrors('handle') ? true : 'a duplicate handle validated';
+    });
+
+    check('an adopted portfolio’s content model is never torn down', function() use ($portfolio) {
+        // Not saved, and pointing at the fixture section: if the refusal failed, teardown would
+        // delete it, and the checks below would say so loudly.
+        $adopted = clone $portfolio;
+        $adopted->adopted = true;
+
+        $result = plugin()->builder->teardown($adopted);
+
+        return !$result->success
+            && $result->problems !== []
+            && Craft::$app->getEntries()->getSectionByHandle(HANDLE) !== null
+            ? true
+            : 'teardown went ahead on an adopted portfolio';
+    });
+
     check('teardown reports what it is about to destroy', function() {
         $reloaded = plugin()->portfolios->getPortfolioByHandle(HANDLE);
         $impact = plugin()->builder->teardownImpact($reloaded);
 
         return $impact['entries'] === 3 && $impact['categories'] === 2 && $impact['tags'] === 1
+            && !in_array(HANDLE . 'Summary', $impact['fields'], true)
             ? true
             : json_encode($impact);
     });
+
+    check('the build records what it created, and not what it reused', function() {
+        $reloaded = plugin()->portfolios->getPortfolioByHandle(HANDLE);
+        $summary = Craft::$app->getFields()->getFieldByHandle(HANDLE . 'Summary');
+
+        return $reloaded->wasCreated($reloaded->sectionUid)
+            && $reloaded->wasCreated($reloaded->roles[Role::GALLERY] ?? null)
+            && !$reloaded->wasCreated($summary?->uid)
+            ? true
+            : 'created: ' . json_encode($reloaded->created);
+    });
+
+    // Forgetting loses the record of what the plugin made; the teardown checks below put it back.
+    $createdBeforeForgetting = plugin()->portfolios->getPortfolioByHandle(HANDLE)->created;
 
     check('forgetting a portfolio leaves the section and its entries standing', function() use ($section) {
         $reloaded = plugin()->portfolios->getPortfolioByHandle(HANDLE);
@@ -911,6 +1094,24 @@ try {
         return $created === [] ? true : 'also created: ' . implode('; ', $created);
     });
 
+    check('a portfolio rebuilt after forgetting claims nothing it found already there', function() use ($createdBeforeForgetting) {
+        $reloaded = plugin()->portfolios->getPortfolioByHandle(HANDLE);
+        $impact = plugin()->builder->teardownImpact($reloaded);
+        $claimed = $reloaded->created;
+
+        // Hand the record back so the teardown checks below test removal, not forgetting. Merged:
+        // the drift check deleted the gallery field, so this rebuild really did create a new one.
+        $reloaded->created = array_merge($createdBeforeForgetting, $claimed);
+        plugin()->portfolios->savePortfolio($reloaded);
+
+        $gallery = $reloaded->roles[Role::GALLERY] ?? null;
+        $claimedOnlyTheNewGallery = array_diff($claimed, [$gallery]) === [];
+
+        return $claimedOnlyTheNewGallery && $impact['entries'] === 0 && $impact['section'] === null
+            ? true
+            : 'claimed: ' . json_encode($claimed) . ' impact: ' . json_encode($impact);
+    });
+
     check('teardown removes the section, entries and groups', function() {
         $reloaded = plugin()->portfolios->getPortfolioByHandle(HANDLE);
         $teardown = plugin()->builder->teardown($reloaded);
@@ -924,7 +1125,7 @@ try {
             : 'teardown left something behind: ' . implode('; ', $teardown->problems);
     });
 
-    check('teardown removes the fields it created', function() {
+    check('teardown removes the fields it created, and keeps the one it reused', function() {
         $left = [];
 
         foreach (Role::all() as $role) {
@@ -933,19 +1134,16 @@ try {
             }
         }
 
-        return $left === [] ? true : 'fields left behind: ' . implode(', ', $left);
+        $summary = Craft::$app->getFields()->getFieldByHandle(HANDLE . 'Summary');
+
+        return $left === [Role::SUMMARY] && $summary?->instructions === 'Written by the site, not the plugin.'
+            ? true
+            : 'fields left: ' . implode(', ', $left);
     });
 } finally {
     sweep();
     setEdition($originalEdition);
     Craft::$app->getProjectConfig()->flush();
-
-    // The starter templates land in the site's own templates directory, so they are swept too.
-    $templateDir = Craft::$app->getPath()->getSiteTemplatesPath() . '/portfolio-test';
-
-    if (is_dir($templateDir)) {
-        craft\helpers\FileHelper::removeDirectory($templateDir);
-    }
 }
 
 $elapsed = number_format(microtime(true) - $startedAt, 1);

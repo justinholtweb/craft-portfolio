@@ -33,9 +33,12 @@ class Jsonld extends Component
             return Template::raw('');
         }
 
+        // JSON_HEX_TAG is not optional. Every value here is author-entered — an entry titled
+        // `</script><script>…` would otherwise close this tag and run on the live page, and
+        // unescaped slashes mean nothing else stands in the way. `\u003C` is still valid JSON.
         return Template::raw(sprintf(
             '<script type="application/ld+json">%s</script>',
-            Json::encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            Json::encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP),
         ));
     }
 

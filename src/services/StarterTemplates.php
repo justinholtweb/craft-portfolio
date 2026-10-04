@@ -5,6 +5,7 @@ namespace justinholtweb\portfolio\services;
 use Craft;
 use craft\base\Component;
 use craft\helpers\FileHelper;
+use craft\validators\HandleValidator;
 use justinholtweb\portfolio\models\Portfolio;
 use justinholtweb\portfolio\Plugin;
 use Throwable;
@@ -49,6 +50,19 @@ class StarterTemplates extends Component
         $targetRoot = $this->targetRoot($portfolio);
         $results = [];
 
+        // Validated on save, checked again here because project config is a YAML file anyone can
+        // edit: the root is a directory we write into and a string inside the Twig we write, and
+        // the handle sits inside a quoted Twig string. Neither gets to be anything but plain.
+        if (!preg_match(Portfolio::TEMPLATE_ROOT_PATTERN, $portfolio->templateRoot)
+            || !preg_match('/^' . HandleValidator::$handlePattern . '$/', $portfolio->handle)
+        ) {
+            return [[
+                'path' => $portfolio->templateRoot,
+                'status' => self::FAILED,
+                'note' => Craft::t('portfolio', 'The portfolio’s handle or template root is not valid, so nothing was written.'),
+            ]];
+        }
+
         if (!$this->rootIsWritable()) {
             return [[
                 'path' => $this->templatesPath(),
@@ -80,7 +94,7 @@ class StarterTemplates extends Component
                 $results[] = [
                     'path' => $display,
                     'status' => self::SKIPPED,
-                    'note' => Craft::t('portfolio', 'Already exists — left alone.'),
+                    'note' => Craft::t('portfolio', 'Already exists, so it was left alone.'),
                 ];
                 continue;
             }
@@ -168,6 +182,21 @@ class StarterTemplates extends Component
         return $contents;
     }
 
+    /**
+     * The name, made safe to drop into the written templates as literal text.
+     *
+     * It is free text, and it lands in HTML (`<h1>`, `<title>`) and in Twig comments — so it is
+     * HTML-encoded, and its braces become entities, or a name containing `{{`, `{%` or `#}` would
+     * be Twig code in the site's own templates. Entities read back as the same characters.
+     */
+    private function literal(string $text): string
+    {
+        return strtr(htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), [
+            '{' => '&#123;',
+            '}' => '&#125;',
+        ]);
+    }
+
     /** @return array<string, string> */
     private function tokens(Portfolio $portfolio): array
     {
@@ -183,7 +212,10 @@ class StarterTemplates extends Component
                 if ($uriFormat !== '') {
                     $trimmed = trim(preg_replace('/\{[^}]*\}.*$/', '', $uriFormat), '/');
 
-                    if ($trimmed !== '') {
+                    // It lands inside `url('…')` and a Twig comment, so a quote, backslash or
+                    // brace would end one or the other. A URI format like that is not one the
+                    // starter templates can name; the template root is the safe fallback.
+                    if ($trimmed !== '' && preg_match('/^[^\'"\\\\{}\s]+$/u', $trimmed)) {
                         $uriRoot = $trimmed;
                     }
 
@@ -193,7 +225,7 @@ class StarterTemplates extends Component
         }
 
         return [
-            '%%NAME%%' => $portfolio->name,
+            '%%NAME%%' => $this->literal($portfolio->name),
             '%%HANDLE%%' => $portfolio->handle,
             '%%ROOT%%' => $portfolio->templateRoot,
             '%%URI_ROOT%%' => $uriRoot,

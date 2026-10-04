@@ -200,9 +200,10 @@ explicit act, and existing files are never overwritten without `--force`. They b
 templates the second they land.
 
 **Uninstalling does not delete your content model.** The section, entry type, fields, groups and
-every entry stay exactly where they are; only the plugin's own project config goes. "Forget this
-portfolio" in the CP does the same thing on purpose. Taking the schema away is a separate,
-confirmed act with the damage counted out in front of you.
+every entry stay exactly where they are, as ordinary Craft content. "Forget this portfolio" in the
+CP does the same thing on purpose. Taking the schema away is a separate, confirmed act with the
+damage counted out in front of you, and it only ever deletes what the plugin itself created —
+anything the build reused stays.
 
 ---
 
@@ -228,4 +229,4 @@ the sections and fields it describes, which is the only place it makes sense to 
 
 ## Licence
 
-Commercial. Lite is free; Pro needs a licence per installation. See `LICENSE.md`.
+The Craft License. See `LICENSE.md`. Lite is free; Pro needs a licence per installation, bought through the Craft Plugin Store.

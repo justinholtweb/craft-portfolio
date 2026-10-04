@@ -13,5 +13,7 @@ Initial release.
   `next`, `prev`, plus the `portfolioField` filter.
 - Starter front-end templates written into the site on request.
 - Console: `portfolio/setup/build`, `status`, `templates`, `remove`.
+- Removing a portfolio's content model deletes only what the plugin created. Anything the build
+  reused is kept, and an adopted portfolio can only be forgotten, never removed.
 - **Pro** — unlimited portfolios, adopting an existing section, `craft.portfolio.grid()` with
   client-side filtering and a lightbox, and schema.org `CreativeWork` JSON-LD.

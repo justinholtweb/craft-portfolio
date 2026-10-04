@@ -1,79 +1,100 @@
-{% extends "_layouts/cp" %}
-{% import "_includes/forms" as forms %}
+{# =========================================================================
+   Portfolio: adopt a section (Pro)
+   Creates nothing: maps each role onto a field the section already has.
+   `portfolio` is the unsaved model after a failed post, so values and
+   validation errors survive the round trip.
+   ========================================================================= #}
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
 
-{% set title = "Adopt a section"|t('portfolio') %}
+{% set title = 'Adopt a section'|t('portfolio') %}
 {% set selectedSubnavItem = 'portfolios' %}
-{% set fullPageForm = true %}
-{% set crumbs = [{ label: "Portfolios"|t('portfolio'), url: url('portfolio') }] %}
+{% set fullPageForm = sections is not empty %}
+{% set submitButtonLabel = 'Adopt'|t('portfolio') %}
+{% set crumbs = [{ label: 'Portfolios'|t('portfolio'), url: cpUrl('portfolio') }] %}
+
+{% set portfolio = portfolio ?? null %}
 
 {% block content %}
-    {{ actionInput('portfolio/portfolios/adopt') }}
-
     {% if sections is empty %}
-        <p class="light">{{ "Every section on this site is either already a portfolio or a Single. There is nothing left to adopt."|t('portfolio') }}</p>
+        <div class="zilch">
+            <p>{{ 'Every section on this site is either already a portfolio or a Single. There is nothing left to adopt.'|t('portfolio') }}</p>
+        </div>
     {% else %}
+        {{ actionInput('portfolio/portfolios/adopt') }}
+
         <p class="light">
-            {{ "Adopting creates nothing. You point each role at a field the section already has, and the portfolio becomes a map over your existing content model — the query API, the archives and the grid all start working against it."|t('portfolio') }}
+            {{ 'Adopting creates nothing. You point each role at a field the section already has, and the portfolio becomes a map over your existing content model: the query API, the archives and the grid all start working against it.'|t('portfolio') }}
         </p>
 
         {% set sectionOptions = [] %}
-        {% for section in sections %}
-            {% set sectionOptions = sectionOptions|merge([{ value: section.uid, label: section.name ~ ' (' ~ section.handle ~ ')' }]) %}
-        {% endfor %}
-
-        {{ forms.selectField({
-            label: "Section"|t('portfolio'),
-            id: 'sectionUid',
-            name: 'sectionUid',
-            options: sectionOptions,
-            required: true,
-        }) }}
-
-        {{ forms.textField({
-            label: "Name"|t('portfolio'),
-            instructions: "Leave blank to use the section's name."|t('portfolio'),
-            id: 'name',
-            name: 'name',
-        }) }}
-
-        {{ forms.textField({
-            label: "Handle"|t('portfolio'),
-            instructions: "What templates call this portfolio in `craft.portfolio.of(...)`. Leave blank to use the section's handle."|t('portfolio')|md(inlineOnly=true),
-            id: 'handle',
-            name: 'handle',
-            class: 'code',
-        }) }}
-
-        {{ forms.textField({
-            label: "Template folder"|t('portfolio'),
-            id: 'templateRoot',
-            name: 'templateRoot',
-            class: 'code',
-        }) }}
-
         {% set entryTypeOptions = [] %}
         {% for section in sections %}
+            {% set sectionOptions = sectionOptions|push({ value: section.uid, label: section.name ~ ' (' ~ section.handle ~ ')' }) %}
+            {% set entryTypeOptions = entryTypeOptions|push({ optgroup: section.name }) %}
             {% for entryType in section.getEntryTypes() %}
-                {% set entryTypeOptions = entryTypeOptions|merge([{ value: entryType.uid, label: entryType.name ~ ' (' ~ section.handle ~ ')' }]) %}
+                {% set entryTypeOptions = entryTypeOptions|push({ value: entryType.uid, label: entryType.name ~ ' (' ~ entryType.handle ~ ')' }) %}
             {% endfor %}
         {% endfor %}
 
         {{ forms.selectField({
-            label: "Entry type"|t('portfolio'),
-            instructions: "Which entry type in that section holds portfolio items."|t('portfolio'),
+            label: 'Section'|t('portfolio'),
+            id: 'sectionUid',
+            name: 'sectionUid',
+            options: sectionOptions,
+            value: portfolio.sectionUid ?? null,
+            required: true,
+            first: true,
+            errors: portfolio ? portfolio.getErrors('sectionUid') : [],
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Entry type'|t('portfolio'),
+            instructions: 'Which entry type in that section holds portfolio items. One from another section falls back to the chosen section’s first entry type.'|t('portfolio'),
             id: 'entryTypeUid',
             name: 'entryTypeUid',
             options: entryTypeOptions,
+            value: portfolio.entryTypeUid ?? null,
+            errors: portfolio ? portfolio.getErrors('entryTypeUid') : [],
+        }) }}
+
+        {{ forms.textField({
+            label: 'Name'|t('portfolio'),
+            instructions: 'Leave blank to use the section’s name.'|t('portfolio'),
+            id: 'name',
+            name: 'name',
+            value: portfolio.name ?? null,
+            errors: portfolio ? portfolio.getErrors('name') : [],
+        }) }}
+
+        {{ forms.textField({
+            label: 'Handle'|t('portfolio'),
+            instructions: 'What templates call this portfolio in `craft.portfolio.of(…)`. Leave blank to use the section’s handle.'|t('portfolio'),
+            id: 'handle',
+            name: 'handle',
+            value: portfolio.handle ?? null,
+            class: 'code',
+            errors: portfolio ? portfolio.getErrors('handle') : [],
+        }) }}
+
+        {{ forms.textField({
+            label: 'Template folder'|t('portfolio'),
+            instructions: 'A path inside the templates folder, like `work` or `work/projects`. Leave blank to use the section’s handle.'|t('portfolio'),
+            id: 'templateRoot',
+            name: 'templateRoot',
+            value: portfolio.templateRoot ?? null,
+            class: 'code',
+            errors: portfolio ? portfolio.getErrors('templateRoot') : [],
         }) }}
 
         <hr>
 
-        <h2>{{ "Roles"|t('portfolio') }}</h2>
-        <p class="light">{{ "Leave a role blank if this section has nothing that plays it — templates and the grid skip roles that are not mapped."|t('portfolio') }}</p>
+        <h2>{{ 'Roles'|t('portfolio') }}</h2>
+        <p class="light">{{ 'Leave a role empty if this section has nothing that plays it. Templates and the grid skip roles that are not mapped.'|t('portfolio') }}</p>
 
-        {% set fieldOptions = [{ value: '', label: '—' }] %}
+        {% set fieldOptions = [{ value: '', label: 'None'|t('portfolio') }] %}
         {% for field in fields %}
-            {% set fieldOptions = fieldOptions|merge([{ value: field.uid, label: field.name ~ ' (' ~ field.handle ~ ')' }]) %}
+            {% set fieldOptions = fieldOptions|push({ value: field.uid, label: field.name ~ ' (' ~ field.handle ~ ')' }) %}
         {% endfor %}
 
         {% for role in roles %}
@@ -83,9 +104,8 @@
                 id: 'role-' ~ role,
                 name: 'roles[' ~ role ~ ']',
                 options: fieldOptions,
+                value: portfolio.roles[role] ?? '',
             }) }}
         {% endfor %}
-
-        <p><button type="submit" class="btn submit big">{{ "Adopt this section"|t('portfolio') }}</button></p>
     {% endif %}
 {% endblock %}

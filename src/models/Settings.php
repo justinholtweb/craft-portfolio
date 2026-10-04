@@ -2,6 +2,7 @@
 
 namespace justinholtweb\portfolio\models;
 
+use Craft;
 use craft\base\Model;
 
 /**
@@ -53,7 +54,7 @@ class Settings extends Model
             [['gridLayout'], 'in', 'range' => ['grid', 'masonry', 'list']],
             [['gridColumns'], 'integer', 'min' => 1, 'max' => 6],
             [['gridImageWidth'], 'integer', 'min' => 100, 'max' => 4000],
-            [['tagTemplate'], 'match', 'pattern' => '/^[a-zA-Z0-9_\-\/]+$/', 'message' => 'The tag template must be a template path.'],
+            [['tagTemplate'], 'match', 'pattern' => '/^[a-zA-Z0-9_\-\/]+$/', 'message' => Craft::t('portfolio', 'The tag template must be a template path.')],
             [['defaultPortfolio'], 'string'],
         ];
     }

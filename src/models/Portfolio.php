@@ -9,6 +9,8 @@ use craft\models\CategoryGroup;
 use craft\models\EntryType;
 use craft\models\Section;
 use craft\models\TagGroup;
+use craft\validators\HandleValidator;
+use justinholtweb\portfolio\Plugin;
 
 /**
  * A portfolio that exists: a section, an entry type, and a map from role to field.
@@ -21,6 +23,15 @@ use craft\models\TagGroup;
  */
 class Portfolio extends Model
 {
+    /**
+     * A template root: path segments of letters, digits, `_` and `-`, nothing else.
+     *
+     * It becomes a directory under `templates/` that the starter templates are written into, a
+     * site URL rule, and a string inside the Twig that gets written — so `..`, a leading slash or
+     * a quote would be a path out of `templates/`, a broken route, or code in somebody's site.
+     */
+    public const TEMPLATE_ROOT_PATTERN = '/^[a-zA-Z0-9_\-]+(\/[a-zA-Z0-9_\-]+)*$/';
+
     public string $uid = '';
     public string $name = '';
     public string $handle = '';
@@ -41,6 +52,22 @@ class Portfolio extends Model
 
     /** Set when the portfolio was created by adopting an existing section rather than building one. */
     public bool $adopted = false;
+
+    /**
+     * UIDs of the section, entry type, groups and fields this plugin created for the portfolio.
+     *
+     * Teardown deletes only these. Anything the build *reused* was the site's before the portfolio
+     * existed, and stays the site's — "never edit what you did not create" covers deleting too.
+     *
+     * @var string[]
+     */
+    public array $created = [];
+
+    /** Whether the plugin created the thing with this UID, and so may remove it. */
+    public function wasCreated(?string $uid): bool
+    {
+        return $uid !== null && $uid !== '' && in_array($uid, $this->created, true);
+    }
 
     private ?Section $_section = null;
     private ?EntryType $_entryType = null;
@@ -184,6 +211,7 @@ class Portfolio extends Model
             'sectionType' => $this->sectionType,
             'sortOrder' => $this->sortOrder,
             'adopted' => $this->adopted,
+            'created' => array_values(array_unique($this->created)),
         ];
     }
 
@@ -202,13 +230,23 @@ class Portfolio extends Model
             'sectionType' => $config['sectionType'] ?? Section::TYPE_STRUCTURE,
             'sortOrder' => (int)($config['sortOrder'] ?? 0),
             'adopted' => (bool)($config['adopted'] ?? false),
+            'created' => array_values($config['created'] ?? []),
         ]);
     }
 
     public function rules(): array
     {
         return [
-            [['name', 'handle', 'sectionUid', 'entryTypeUid'], 'required'],
+            [['name', 'handle', 'sectionUid', 'entryTypeUid', 'templateRoot'], 'required'],
+            [['handle'], HandleValidator::class],
+            [['handle'], function(string $attribute) {
+                foreach (Plugin::getInstance()->portfolios->getAllPortfolios() as $other) {
+                    if ($other->handle === $this->handle && $other->uid !== $this->uid) {
+                        $this->addError($attribute, Craft::t('portfolio', 'Another portfolio already uses the handle “{handle}”.', ['handle' => $this->handle]));
+                    }
+                }
+            }],
+            [['templateRoot'], 'match', 'pattern' => self::TEMPLATE_ROOT_PATTERN, 'message' => Craft::t('portfolio', 'The template root must be a path inside the templates folder, like `work` or `work/projects`.')],
         ];
     }
 }

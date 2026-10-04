@@ -83,7 +83,7 @@ final class Role
             self::FEATURED_IMAGE => Craft::t('portfolio', 'The single image that represents the project.'),
             self::GALLERY => Craft::t('portfolio', 'Additional images, shown on the project page.'),
             self::CLIENT => Craft::t('portfolio', 'Who the work was for.'),
-            self::COMPLETED_DATE => Craft::t('portfolio', 'When the work was finished — archives sort on this.'),
+            self::COMPLETED_DATE => Craft::t('portfolio', 'When the work was finished. Archives sort on this.'),
             self::PROJECT_URL => Craft::t('portfolio', 'A link to the live work.'),
             self::CATEGORIES => Craft::t('portfolio', 'What kind of work it is. Drives archive URLs and filtering.'),
             self::TAGS => Craft::t('portfolio', 'Free-form keywords, for looser grouping.'),
